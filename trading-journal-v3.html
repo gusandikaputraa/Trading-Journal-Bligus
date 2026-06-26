@@ -1,0 +1,2299 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Trading Journal v2</title>
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #161a23;
+    --surface2: #1e2433;
+    --border: #2a3147;
+    --accent: #00d4aa;
+    --accent2: #7c6af7;
+    --buy: #00c896;
+    --sell: #ff4f6d;
+    --text: #e8eaf0;
+    --muted: #8892a4;
+    --radius: 12px;
+    --font: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  .header {
+    background: linear-gradient(135deg, #0d1b2a 0%, #1a0533 100%);
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .logo { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 700; letter-spacing: -0.5px; }
+  .logo-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--accent); }
+  .header-sub { font-size: 11px; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; }
+  .setup-btn {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--muted);
+    padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s;
+  }
+  .setup-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  .tabs {
+    display: flex; background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 0 8px; gap: 2px; overflow-x: auto;
+  }
+  .tab {
+    padding: 11px 12px; font-size: 12px; font-weight: 500; color: var(--muted);
+    cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: all 0.2s;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .content { padding: 16px; max-width: 600px; margin: 0 auto; }
+
+  .section-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--muted); margin-bottom: 10px; margin-top: 20px;
+  }
+  .section-label:first-child { margin-top: 4px; }
+
+  .field { margin-bottom: 12px; }
+  .field label {
+    display: block; font-size: 11px; color: var(--muted); margin-bottom: 5px;
+    text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .field input, .field select, .field textarea {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); padding: 11px 14px; border-radius: var(--radius);
+    font-size: 15px; font-family: var(--font); transition: border-color 0.2s; -webkit-appearance: none;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: none; border-color: var(--accent); background: var(--surface2);
+  }
+  .field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238892a4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; cursor: pointer;
+  }
+  .field textarea { resize: vertical; min-height: 80px; font-size: 14px; line-height: 1.5; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  .direction-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .dir-btn {
+    padding: 14px; border-radius: var(--radius); border: 2px solid var(--border);
+    background: var(--surface); color: var(--muted); font-size: 15px; font-weight: 700;
+    cursor: pointer; text-align: center; transition: all 0.2s; letter-spacing: 1px;
+  }
+  .dir-btn.buy.active { border-color: var(--buy); background: rgba(0,200,150,0.1); color: var(--buy); }
+  .dir-btn.sell.active { border-color: var(--sell); background: rgba(255,79,109,0.1); color: var(--sell); }
+
+  .emotion-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .emo-btn {
+    padding: 10px 4px; border-radius: var(--radius); border: 1px solid var(--border);
+    background: var(--surface); font-size: 22px; cursor: pointer; text-align: center; transition: all 0.2s; line-height: 1.2;
+  }
+  .emo-btn span { display: block; font-size: 9px; color: var(--muted); margin-top: 3px; letter-spacing: 0.3px; }
+  .emo-btn.active { border-color: var(--accent2); background: rgba(124,106,247,0.15); }
+
+  .result-toggle { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .result-btn {
+    padding: 11px 8px; border-radius: var(--radius); border: 2px solid var(--border);
+    background: var(--surface); color: var(--muted); font-size: 13px; font-weight: 600;
+    cursor: pointer; text-align: center; transition: all 0.2s;
+  }
+  .result-btn.win.active { border-color: var(--buy); color: var(--buy); background: rgba(0,200,150,0.1); }
+  .result-btn.loss.active { border-color: var(--sell); color: var(--sell); background: rgba(255,79,109,0.1); }
+  .result-btn.be.active { border-color: #f0a030; color: #f0a030; background: rgba(240,160,48,0.1); }
+
+  .submit-btn {
+    width: 100%; background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    color: #0d0f14; border: none; padding: 16px; border-radius: var(--radius);
+    font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 24px; letter-spacing: 0.5px;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .submit-btn:hover { opacity: 0.92; }
+  .submit-btn:active { transform: scale(0.98); }
+  .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    padding: 12px 24px; border-radius: 100px; font-size: 13px; font-weight: 500;
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); z-index: 999;
+    white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { border-color: var(--accent); color: var(--accent); }
+  .toast.error { border-color: var(--sell); color: var(--sell); }
+
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    z-index: 200; align-items: flex-end;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border-radius: 20px 20px 0 0; border-top: 1px solid var(--border);
+    padding: 24px 20px 40px; width: 100%; max-width: 600px; margin: 0 auto;
+    animation: slideUp 0.3s ease; max-height: 85vh; overflow-y: auto;
+  }
+  @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .modal p { font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
+  .modal-close { float: right; background: none; border: none; color: var(--muted); font-size: 20px; cursor: pointer; padding: 0 4px; }
+  .url-input-wrap input {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    padding: 12px 14px; border-radius: var(--radius); font-size: 13px; width: 100%; font-family: monospace;
+  }
+  .url-input-wrap input:focus { outline: none; border-color: var(--accent); }
+  .save-url-btn {
+    width: 100%; background: var(--accent); color: #0d0f14; border: none;
+    padding: 13px; border-radius: var(--radius); font-size: 14px; font-weight: 700;
+    cursor: pointer; margin-top: 12px;
+  }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .status-dot.connected { background: var(--buy); box-shadow: 0 0 6px var(--buy); }
+  .status-dot.disconnected { background: var(--muted); }
+  .connection-status { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+  /* HISTORY TAB */
+  .trade-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px; margin-bottom: 10px;
+  }
+  .trade-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .trade-pair { font-size: 15px; font-weight: 700; }
+  .trade-direction { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; letter-spacing: 1px; }
+  .trade-direction.BUY { background: rgba(0,200,150,0.15); color: var(--buy); }
+  .trade-direction.SELL { background: rgba(255,79,109,0.15); color: var(--sell); }
+  .trade-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .trade-pnl { font-size: 14px; font-weight: 700; margin-top: 6px; }
+  .trade-pnl.pos { color: var(--buy); }
+  .trade-pnl.neg { color: var(--sell); }
+  .trade-pnl.be { color: #f0a030; }
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; line-height: 1.6; }
+
+  /* STATS / DASHBOARD */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 14px;
+  }
+  .stat-card .val { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+  .stat-card .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+  .stat-card.full { grid-column: 1 / -1; }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 8px 0 16px; }
+
+  .script-card {
+    background: #0d1117; border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px; font-family: monospace; font-size: 11px; color: #79c0ff;
+    overflow-x: auto; white-space: pre-wrap; word-break: break-all;
+    line-height: 1.6; margin-bottom: 12px; max-height: 300px; overflow-y: auto;
+  }
+  .copy-btn {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 16px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; width: 100%;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .step-item { display: flex; gap: 12px; margin-bottom: 16px; align-items: flex-start; }
+  .step-num {
+    width: 26px; height: 26px; border-radius: 50%; background: var(--accent2); color: white;
+    font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .step-text { font-size: 13px; line-height: 1.6; color: var(--text); }
+  .step-text strong { color: var(--accent); }
+  .step-text code {
+    background: var(--surface2); padding: 1px 6px; border-radius: 4px;
+    font-family: monospace; font-size: 12px; color: #79c0ff;
+  }
+  .highlight-box {
+    background: rgba(0,212,170,0.08); border: 1px solid rgba(0,212,170,0.3);
+    border-radius: var(--radius); padding: 12px 14px; font-size: 13px;
+    color: var(--accent); margin-bottom: 16px; line-height: 1.5;
+  }
+
+  /* PAIR SEARCH WRAPPER */
+  .pair-search-wrap { position: relative; }
+  .pair-search-input {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); padding: 11px 14px; border-radius: var(--radius);
+    font-size: 15px; font-family: var(--font); transition: border-color 0.2s;
+  }
+  .pair-search-input:focus { outline: none; border-color: var(--accent); background: var(--surface2); }
+  .pair-dropdown {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
+    background: var(--surface2); border: 1px solid var(--accent); border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius); max-height: 200px; overflow-y: auto; display: none;
+  }
+  .pair-dropdown.open { display: block; }
+  .pair-option {
+    padding: 10px 14px; font-size: 14px; cursor: pointer; transition: background 0.15s;
+  }
+  .pair-option:hover { background: rgba(0,212,170,0.1); color: var(--accent); }
+  .pair-group-label {
+    padding: 6px 14px 4px; font-size: 10px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 1px; background: var(--surface);
+  }
+
+  /* RR INFO BOX */
+  .rr-box {
+    background: rgba(124,106,247,0.08); border: 1px solid rgba(124,106,247,0.3);
+    border-radius: var(--radius); padding: 10px 14px; font-size: 12px;
+    color: var(--accent2); margin-top: 8px; display: none;
+  }
+  .rr-box.show { display: block; }
+  .rr-box span { font-weight: 700; font-size: 14px; }
+
+  /* BALANCE DISPLAY */
+  .balance-bar {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .balance-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+  .balance-amount { font-size: 20px; font-weight: 700; color: var(--accent); }
+  .balance-currency { font-size: 12px; color: var(--muted); margin-left: 4px; }
+
+  /* NOMINAL PNL INFO */
+  .risk-info-box {
+    background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 12px; font-size: 12px; color: var(--muted); margin-top: 6px; display: none;
+  }
+  .risk-info-box.show { display: block; }
+  .risk-info-box .info-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+  .risk-info-box .info-row:last-child { margin-bottom: 0; }
+  .risk-info-box .red { color: var(--sell); font-weight: 600; }
+  .risk-info-box .green { color: var(--buy); font-weight: 600; }
+
+  /* TRADE COMPLETED CHECKBOX */
+  .trade-complete-row {
+    display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    cursor: pointer; margin-bottom: 12px; transition: border-color 0.2s;
+  }
+  .trade-complete-row.checked { border-color: var(--accent); background: rgba(0,212,170,0.05); }
+  .trade-complete-row input[type="checkbox"] {
+    width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0;
+  }
+  .trade-complete-row label { font-size: 14px; font-weight: 600; color: var(--text); cursor: pointer; }
+  #trade-result-fields { display: none; }
+  #trade-result-fields.show { display: block; }
+
+  /* DURATION DISPLAY */
+  .duration-display {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 14px; font-size: 13px; color: var(--accent); margin-top: 4px; display: none;
+  }
+  .duration-display.show { display: block; }
+
+  /* ACCOUNT TAB */
+  .account-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px; margin-bottom: 10px; position: relative;
+  }
+  .account-card.active-account { border-color: var(--accent); }
+  .account-card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+  .account-name { font-size: 15px; font-weight: 700; }
+  .account-broker { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .account-balance { font-size: 18px; font-weight: 700; color: var(--accent); }
+  .account-actions { display: flex; gap: 6px; margin-top: 10px; }
+  .btn-sm {
+    padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--muted); font-size: 11px; cursor: pointer;
+    font-weight: 600; transition: all 0.2s;
+  }
+  .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-sm.danger:hover { border-color: var(--sell); color: var(--sell); }
+  .btn-sm.primary { border-color: var(--accent); color: var(--accent); }
+  .add-account-btn {
+    width: 100%; background: var(--surface2); border: 2px dashed var(--border);
+    color: var(--muted); padding: 14px; border-radius: var(--radius);
+    font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .add-account-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .active-badge {
+    font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+    background: rgba(0,212,170,0.15); color: var(--accent); letter-spacing: 0.5px;
+  }
+  .account-meta { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+  /* SELECTED ACCOUNT BAR */
+  .selected-account-bar {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 10px 14px; margin-bottom: 12px; cursor: pointer; transition: border-color 0.2s;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .selected-account-bar:hover { border-color: var(--accent); }
+  .selected-account-info .acc-name { font-size: 13px; font-weight: 700; }
+  .selected-account-info .acc-detail { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .selected-account-bar .change-txt { font-size: 11px; color: var(--accent); }
+
+  /* ACCOUNT SELECT DROPDOWN (inside modal) */
+  .account-select-list { max-height: 300px; overflow-y: auto; }
+  .account-select-item {
+    padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius);
+    margin-bottom: 8px; cursor: pointer; transition: all 0.2s;
+  }
+  .account-select-item:hover { border-color: var(--accent); background: rgba(0,212,170,0.05); }
+  .account-select-item .asi-name { font-size: 14px; font-weight: 700; }
+  .account-select-item .asi-detail { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .account-select-item .asi-balance { font-size: 16px; font-weight: 700; color: var(--accent); margin-top: 4px; }
+
+  /* EDIT TRADE MODAL */
+  .edit-modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+    z-index: 300; align-items: center; justify-content: center; padding: 16px;
+  }
+  .edit-modal-overlay.open { display: flex; }
+  .edit-modal {
+    background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border);
+    padding: 20px; width: 100%; max-width: 560px; max-height: 85vh; overflow-y: auto;
+    animation: slideUp 0.3s ease;
+  }
+  .edit-modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+  .edit-modal-close {
+    float: right; background: none; border: none; color: var(--muted);
+    font-size: 20px; cursor: pointer; padding: 0 4px;
+  }
+  .edit-actions { display: flex; gap: 8px; margin-top: 16px; }
+  .btn-save {
+    flex: 1; background: var(--accent); color: #0d0f14; border: none;
+    padding: 12px; border-radius: var(--radius); font-size: 14px; font-weight: 700; cursor: pointer;
+  }
+  .btn-cancel {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border); color: var(--muted);
+    padding: 12px; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+
+  /* DASHBOARD */
+  .dash-section { margin-bottom: 20px; }
+  .dash-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+  .equity-card {
+    background: linear-gradient(135deg, rgba(0,212,170,0.1) 0%, rgba(124,106,247,0.1) 100%);
+    border: 1px solid rgba(0,212,170,0.3); border-radius: var(--radius);
+    padding: 20px; margin-bottom: 16px; text-align: center;
+  }
+  .equity-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .equity-value { font-size: 32px; font-weight: 700; color: var(--accent); margin: 6px 0 2px; }
+  .equity-change { font-size: 13px; }
+  .equity-change.pos { color: var(--buy); }
+  .equity-change.neg { color: var(--sell); }
+  .mini-stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .mini-stat {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 10px; text-align: center;
+  }
+  .mini-stat .m-val { font-size: 18px; font-weight: 700; }
+  .mini-stat .m-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 3px; }
+  .progress-bar-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 8px; }
+  .progress-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; }
+  .progress-track { background: var(--surface2); border-radius: 100px; height: 8px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 100px; transition: width 0.5s ease; }
+  .recent-trade-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+  }
+  .recent-trade-item:last-child { border-bottom: none; }
+  .rti-left .rti-pair { font-size: 14px; font-weight: 700; }
+  .rti-left .rti-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .rti-pnl { font-size: 14px; font-weight: 700; }
+
+  /* LOT SIZE TAB */
+  .lot-size-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px; margin-bottom: 10px;
+    position: relative;
+  }
+  .lot-size-card-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+  }
+  .lot-pair-name { font-size: 16px; font-weight: 700; color: var(--accent); }
+  .lot-size-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .lot-size-meta span { color: var(--text); font-weight: 600; }
+  .lot-badge {
+    font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px;
+    background: rgba(124,106,247,0.15); color: var(--accent2); letter-spacing: 0.5px;
+  }
+  .add-lot-btn {
+    width: 100%; background: var(--surface2); border: 2px dashed var(--border);
+    color: var(--muted); padding: 14px; border-radius: var(--radius);
+    font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-bottom: 12px;
+  }
+  .add-lot-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* LOT SIZE LINKED INDICATOR */
+  .lot-linked-box {
+    background: rgba(0,212,170,0.08); border: 1px solid rgba(0,212,170,0.3);
+    border-radius: 8px; padding: 8px 12px; font-size: 12px; color: var(--accent);
+    margin-top: 6px; display: none;
+  }
+  .lot-linked-box.show { display: block; }
+  .lot-linked-box .ll-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+  .lot-linked-box .ll-row:last-child { margin-bottom: 0; }
+
+  /* TRADING TYPE TOGGLE */
+  .trading-type-toggle { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .type-btn {
+    padding: 12px 6px; border-radius: var(--radius); border: 2px solid var(--border);
+    background: var(--surface); color: var(--muted); font-size: 13px; font-weight: 600;
+    cursor: pointer; text-align: center; transition: all 0.2s;
+  }
+  .type-btn.live.active { border-color: var(--sell); background: rgba(255,79,109,0.1); color: var(--sell); }
+  .type-btn.backtest.active { border-color: var(--accent2); background: rgba(124,106,247,0.1); color: var(--accent2); }
+  .type-btn.forwardtest.active { border-color: #f0a030; background: rgba(240,160,48,0.1); color: #f0a030; }
+
+  /* ACCOUNT FORM INSIDE MODAL */
+  .modal-field { margin-bottom: 12px; }
+  .modal-field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.8px; }
+  .modal-field input, .modal-field select {
+    width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    padding: 10px 14px; border-radius: var(--radius); font-size: 14px; font-family: var(--font); -webkit-appearance: none;
+  }
+  .modal-field input:focus, .modal-field select:focus { outline: none; border-color: var(--accent); }
+  .modal-field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238892a4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px;
+  }
+  .modal-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="logo"><div class="logo-dot"></div>Trading Journal</div>
+    <button class="setup-btn" onclick="openSetupModal()">⚙ Setup</button>
+  </div>
+  <div class="header-sub" id="header-sub-text">v2.0 · Multi Account</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('dashboard')">Dashboard</div>
+  <div class="tab" onclick="switchTab('entry')">Entry Trade</div>
+  <div class="tab" onclick="switchTab('history')">Riwayat</div>
+  <div class="tab" onclick="switchTab('lotsize')">Lot Size</div>
+  <div class="tab" onclick="switchTab('accounts')">Akun</div>
+  <div class="tab" onclick="switchTab('setup')">Setup</div>
+</div>
+
+<!-- TAB: LOT SIZE -->
+<div id="tab-lotsize" class="content" style="display:none">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:700">⚖️ Data Lot Size Pair</div>
+    <div style="font-size:11px;color:var(--muted)" id="lotsize-sync-status"></div>
+  </div>
+  <div class="highlight-box" style="font-size:12px;margin-bottom:12px">
+    📌 Data Lot Size digunakan otomatis untuk menghitung <strong>RR, Pips, dan Risk%</strong> ketika pair yang sama dipilih di Entry Trade.
+  </div>
+  <button class="add-lot-btn" onclick="openAddLotModal()">+ Tambah Data Lot Size Pair</button>
+  <div id="lotsize-list"></div>
+</div>
+
+<!-- TAB: DASHBOARD -->
+<div id="tab-dashboard" class="content">
+  <div id="dashboard-content">
+    <div class="empty-state"><div class="icon">📊</div><p>Buat akun trading dulu<br>di tab <strong>Akun</strong>, lalu mulai mencatat trade.</p></div>
+  </div>
+</div>
+
+<!-- TAB: ENTRY TRADE -->
+<div id="tab-entry" class="content" style="display:none">
+
+  <!-- PILIH AKUN -->
+  <div class="section-label">👤 Akun Trading</div>
+  <div id="no-account-warn" class="highlight-box" style="display:none">⚠️ Belum ada akun. Buat akun dulu di tab <strong>Akun</strong>.</div>
+  <div id="selected-account-bar" class="selected-account-bar" onclick="openAccountSelectModal()" style="display:none">
+    <div class="selected-account-info">
+      <div class="acc-name" id="sel-acc-name">—</div>
+      <div class="acc-detail" id="sel-acc-detail">—</div>
+    </div>
+    <span class="change-txt">Ganti ▾</span>
+  </div>
+
+  <!-- BALANCE BAR -->
+  <div class="balance-bar" id="balance-bar" style="display:none">
+    <div>
+      <div class="balance-label">Saldo Akun</div>
+      <div><span class="balance-amount" id="balance-display">0</span><span class="balance-currency" id="balance-currency-display">USD</span></div>
+    </div>
+    <div style="text-align:center">
+      <div class="balance-label">Risk 3%</div>
+      <div style="font-size:14px;font-weight:700;color:#f0a030" id="risk3-display">—</div>
+    </div>
+    <div style="text-align:right">
+      <div class="balance-label">Floating P&L</div>
+      <div style="font-size:14px;font-weight:700;color:var(--muted)" id="floating-pnl-display">—</div>
+    </div>
+  </div>
+
+  <!-- WAKTU & INSTRUMEN -->
+  <div class="section-label">📅 Waktu & Instrumen</div>
+  <div class="grid-2">
+    <div class="field"><label>Tanggal</label><input type="date" id="inp-date"></div>
+    <div class="field"><label>Jam Entry</label><input type="time" id="inp-time"></div>
+  </div>
+
+  <!-- PAIR SEARCH -->
+  <div class="field">
+    <label>Pair</label>
+    <div class="pair-search-wrap" id="pair-search-wrap">
+      <input type="text" class="pair-search-input" id="inp-pair-search" placeholder="Cari atau ketik pair... (e.g. XAUUSD)" autocomplete="off" oninput="filterPairs(this.value)" onfocus="openPairDropdown()" onblur="delayClosePairDropdown()">
+      <input type="hidden" id="inp-pair" value="">
+      <div class="pair-dropdown" id="pair-dropdown"></div>
+    </div>
+  </div>
+
+  <!-- JENIS TRADING -->
+  <div class="field">
+    <label>Jenis Trading</label>
+    <div class="trading-type-toggle">
+      <div class="type-btn live" onclick="setTradingType('LIVE')">🔴 Live</div>
+      <div class="type-btn backtest" onclick="setTradingType('BACKTEST')">📊 Back Test</div>
+      <div class="type-btn forwardtest" onclick="setTradingType('FORWARDTEST')">🔬 Forward Test</div>
+    </div>
+  </div>
+
+  <!-- ARAH & HARGA -->
+  <div class="section-label">📊 Arah & Harga</div>
+  <div class="field">
+    <label>Arah Trade</label>
+    <div class="direction-toggle">
+      <div class="dir-btn buy" onclick="setDir('BUY')">▲ BUY</div>
+      <div class="dir-btn sell" onclick="setDir('SELL')">▼ SELL</div>
+    </div>
+  </div>
+  <div class="grid-3">
+    <div class="field"><label>Entry Price</label><input type="number" id="inp-entry" placeholder="0.00000" step="0.00001" oninput="calcRR(); calcRiskNominal()"></div>
+    <div class="field"><label>Stop Loss</label><input type="number" id="inp-sl" placeholder="0.00000" step="0.00001" oninput="calcRR(); calcRiskNominal()"></div>
+    <div class="field"><label>Take Profit</label><input type="number" id="inp-tp" placeholder="0.00000" step="0.00001" oninput="calcRR(); calcRiskNominal()"></div>
+  </div>
+  <!-- RR Box -->
+  <div class="rr-box" id="rr-box">
+    Risk:Reward = <span id="rr-display">—</span> &nbsp;|&nbsp; SL: <span id="sl-pips">—</span> pips &nbsp;|&nbsp; TP: <span id="tp-pips">—</span> pips
+  </div>
+  <!-- Lot Size Linked Info -->
+  <div class="lot-linked-box" id="lot-linked-box">
+    <div style="font-size:11px;font-weight:700;margin-bottom:4px;color:var(--accent)">⚖️ Data Lot Size Terlink: <span id="lot-linked-pair">—</span></div>
+    <div class="ll-row"><span>Pip Size</span><span id="ll-pipsize">—</span></div>
+    <div class="ll-row"><span>Nominal / 1 Lot</span><span id="ll-nominal">—</span></div>
+    <div class="ll-row"><span>Currency</span><span id="ll-currency">—</span></div>
+  </div>
+
+  <!-- MANAJEMEN RISIKO -->
+  <div class="section-label">💰 Manajemen Risiko</div>
+  <div class="grid-2">
+    <div class="field"><label>Lot Size</label><input type="number" id="inp-lot" placeholder="0.01" step="0.01" min="0.01" oninput="calcRiskNominal()"></div>
+    <div class="field"><label>Risk % (auto)</label><input type="number" id="inp-risk" placeholder="—" step="0.01" min="0.01" readonly style="background:var(--surface2);color:var(--accent)"></div>
+  </div>
+  <div class="risk-info-box" id="risk-info-box">
+    <div class="info-row"><span>Est. Rugi jika SL:</span><span class="red" id="est-loss-display">—</span></div>
+    <div class="info-row"><span>Est. Untung jika TP:</span><span class="green" id="est-profit-display">—</span></div>
+  </div>
+
+  <!-- SETUP & STRATEGI -->
+  <div class="section-label">🧠 Setup & Strategi</div>
+  <div class="field">
+    <label>Strategi / Setup</label>
+    <select id="inp-setup" onchange="toggleOtherSetup(this.value)">
+      <option value="">-- Pilih Setup --</option>
+      <option>Breakout</option>
+      <option>Support & Resistance</option>
+      <option>Trend Following</option>
+      <option>Reversal</option>
+      <option>Supply & Demand</option>
+      <option>Price Action</option>
+      <option>Smart Money Concept (SMC)</option>
+      <option>ICT Concept</option>
+      <option>Fibonacci Retracement</option>
+      <option>Moving Average Cross</option>
+      <option>Divergence RSI</option>
+      <option>News/Fundamental</option>
+      <option>Scalping</option>
+      <option>Lainnya</option>
+    </select>
+  </div>
+  <div class="field" id="other-setup-field" style="display:none">
+    <label>Keterangan Strategi Lainnya</label>
+    <input type="text" id="inp-setup-other" placeholder="Jelaskan strategi yang digunakan...">
+  </div>
+  <div class="field">
+    <label>Timeframe Analisa</label>
+    <select id="inp-tf">
+      <option value="">-- Pilih TF --</option>
+      <option>M1</option><option>M5</option><option>M15</option>
+      <option>M30</option><option>H1</option><option>H4</option>
+      <option>D1</option><option>W1</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>Catatan Analisa / Alasan Entry</label>
+    <textarea id="inp-notes" placeholder="Contoh: Break struktur H1 ke atas, retest demand zone M15, konfirmasi engulfing bullish..."></textarea>
+  </div>
+
+  <hr class="divider">
+
+  <!-- HASIL TRADE -->
+  <div class="section-label">✅ Hasil Trade</div>
+  <div class="trade-complete-row" id="trade-complete-row" onclick="toggleTradeComplete()">
+    <input type="checkbox" id="trade-complete-chk" onclick="event.stopPropagation()">
+    <label for="trade-complete-chk">Trade is Completed</label>
+  </div>
+
+  <div id="trade-result-fields">
+    <div class="field">
+      <label>Hasil</label>
+      <div class="result-toggle">
+        <div class="result-btn win" onclick="setResult('WIN')">WIN</div>
+        <div class="result-btn loss" onclick="setResult('LOSS')">LOSS</div>
+        <div class="result-btn be" onclick="setResult('BREAKEVEN')">BE</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="field"><label>Tanggal Close</label><input type="date" id="inp-close-date" oninput="calcDuration()"></div>
+      <div class="field"><label>Jam Close</label><input type="time" id="inp-close-time" oninput="calcDuration()"></div>
+    </div>
+    <div class="duration-display" id="duration-display">⏱ Durasi: —</div>
+
+    <div class="grid-2">
+      <div class="field"><label>Close Price</label><input type="number" id="inp-close" placeholder="0.00000" step="0.00001"></div>
+      <div class="field"><label id="pnl-label">Profit / Loss</label><input type="number" id="inp-pnl" placeholder="0.00" step="0.01" oninput="updateBalanceAfterTrade()"></div>
+    </div>
+
+    <div class="field">
+      <label>Kondisi Emosi saat Trading</label>
+      <div class="emotion-grid">
+        <div class="emo-btn" onclick="setEmo('Tenang')">😌<span>Tenang</span></div>
+        <div class="emo-btn" onclick="setEmo('FOMO')">😰<span>FOMO</span></div>
+        <div class="emo-btn" onclick="setEmo('Greedy')">🤑<span>Greedy</span></div>
+        <div class="emo-btn" onclick="setEmo('Takut')">😨<span>Takut</span></div>
+        <div class="emo-btn" onclick="setEmo('Percaya Diri')">💪<span>P.Diri</span></div>
+        <div class="emo-btn" onclick="setEmo('Revenge Trade')">😤<span>Revenge</span></div>
+        <div class="emo-btn" onclick="setEmo('Bingung')">🤔<span>Bingung</span></div>
+        <div class="emo-btn" onclick="setEmo('Sabar')">🧘<span>Sabar</span></div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Evaluasi / Lesson Learned</label>
+      <textarea id="inp-eval" placeholder="Apa yang bisa diperbaiki? Apakah entry/exit sudah sesuai plan?"></textarea>
+    </div>
+  </div>
+
+  <button class="submit-btn" onclick="submitTrade()" id="submit-btn">
+    💾 Simpan Trade
+  </button>
+</div>
+
+<!-- TAB: HISTORY -->
+<div id="tab-history" class="content" style="display:none">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:700">Riwayat Trade</div>
+    <select id="history-filter-acc" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:6px 10px;border-radius:8px;font-size:12px;-webkit-appearance:none" onchange="renderHistory()">
+      <option value="">Semua Akun</option>
+    </select>
+  </div>
+  <div id="history-list"></div>
+</div>
+
+<!-- TAB: AKUN -->
+<div id="tab-accounts" class="content" style="display:none">
+  <div id="accounts-list"></div>
+  <button class="add-account-btn" onclick="openAddAccountModal()">+ Buat Akun Baru</button>
+</div>
+
+<!-- TAB: SETUP / PANDUAN -->
+<div id="tab-setup" class="content" style="display:none">
+  <div class="highlight-box">
+    ✅ Ikuti langkah ini <strong>sekali saja</strong> — setelah selesai, semua trade otomatis tersimpan ke Google Sheets.
+  </div>
+  <div class="section-label">Langkah Setup</div>
+  <div class="step-item"><div class="step-num">1</div><div class="step-text">Buka <strong>Google Sheets</strong> baru di <code>sheets.new</code>, beri nama <strong>"Trading Journal"</strong></div></div>
+  <div class="step-item"><div class="step-num">2</div><div class="step-text">Di menu atas, klik <strong>Extensions → Apps Script</strong></div></div>
+  <div class="step-item"><div class="step-num">3</div><div class="step-text">Hapus semua kode yang ada, lalu <strong>paste kode berikut</strong>:</div></div>
+
+  <div class="script-card" id="apps-script-code">// ============================================================
+// TRADING JOURNAL v2 — Google Apps Script
+// Mendukung: Multi Account, Balance Tracking, Close Time, Durasi, Lot Size
+// ============================================================
+
+const SHEET_TRADES = "Trades";
+const SHEET_ACCOUNTS = "Accounts";
+const SHEET_LOT_SIZES = "LotSizes";
+
+function doPost(e) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const data = JSON.parse(e.postData.contents);
+    const action = data.action || "save_trade";
+
+    if (action === "save_trade") return saveTrade(ss, data);
+    if (action === "save_account") return saveAccount(ss, data);
+    if (action === "update_account_balance") return updateAccountBalance(ss, data);
+    if (action === "update_trade") return updateTrade(ss, data);
+    if (action === "save_lot_size") return saveLotSize(ss, data);
+
+    return jsonResponse({status:"error", message:"Unknown action"});
+  } catch(err) {
+    return jsonResponse({status:"error", message: err.toString()});
+  }
+}
+
+function doGet(e) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const action = e.parameter.action || "ping";
+    if (action === "get_trades") return getTrades(ss, e.parameter);
+    if (action === "get_accounts") return getAccounts(ss);
+    if (action === "get_lot_sizes") return getLotSizes(ss);
+    return jsonResponse({status:"ok", message:"Trading Journal API v2 aktif"});
+  } catch(err) {
+    return jsonResponse({status:"error", message: err.toString()});
+  }
+}
+
+function saveLotSize(ss, data) {
+  let sheet = ss.getSheetByName(SHEET_LOT_SIZES);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_LOT_SIZES);
+    const headers = ["ID","Pair","Jarak Harga","Pip Size","Nominal per Lot","Currency","Catatan","Updated At"];
+    sheet.getRange(1,1,1,headers.length).setValues([headers])
+      .setBackground("#1a1a2e").setFontColor("#00d4aa").setFontWeight("bold");
+    sheet.setFrozenRows(1);
+  }
+  // Check if pair already exists -> update
+  const rows = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][1].toString().toUpperCase() === data.pair.toUpperCase()) {
+      sheet.getRange(i+1, 1, 1, 8).setValues([[
+        data.id, data.pair, data.priceDistance, data.pipSize,
+        data.nominal, data.currency, data.notes||"", new Date().toLocaleString("id-ID")
+      ]]);
+      return jsonResponse({status:"success", updated: data.pair});
+    }
+  }
+  sheet.appendRow([data.id, data.pair, data.priceDistance, data.pipSize,
+    data.nominal, data.currency, data.notes||"", new Date().toLocaleString("id-ID")]);
+  sheet.autoResizeColumns(1, 8);
+  return jsonResponse({status:"success", pair: data.pair});
+}
+
+function getLotSizes(ss) {
+  const sheet = ss.getSheetByName(SHEET_LOT_SIZES);
+  if (!sheet) return jsonResponse({status:"ok", lotSizes:[]});
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const lotSizes = data.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h,i) => obj[h] = row[i]);
+    return obj;
+  });
+  return jsonResponse({status:"ok", lotSizes});
+}
+
+function saveTrade(ss, data) {
+  let sheet = ss.getSheetByName(SHEET_TRADES);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_TRADES);
+    const headers = [
+      "ID","Tanggal","Jam Entry","Pair","Arah",
+      "Entry Price","Stop Loss","Take Profit","Lot Size","Risk %",
+      "Jenis Trading","Strategi","Ket.Strategi","Timeframe","Analisa",
+      "Completed","Hasil","Close Price","P&L","Currency",
+      "Tgl Close","Jam Close","Durasi","Emosi","Evaluasi",
+      "Akun ID","Nama Akun","Broker","Saldo Setelah","Timestamp"
+    ];
+    sheet.getRange(1,1,1,headers.length).setValues([headers])
+      .setBackground("#1a1a2e").setFontColor("#00d4aa").setFontWeight("bold");
+    sheet.setFrozenRows(1);
+  }
+  const id = data.id || Date.now().toString();
+  const row = [
+    id, data.date, data.time, data.pair, data.direction,
+    data.entryPrice, data.stopLoss, data.takeProfit, data.lotSize, data.riskPercent,
+    data.tradingType||"LIVE", data.setup, data.setupOther||"", data.timeframe, data.notes,
+    data.isCompleted?"YES":"NO",
+    data.result||"", data.closePrice||"", data.pnl||"", data.currency||"USD",
+    data.closeDate||"", data.closeTime||"", data.duration||"",
+    data.emotion||"", data.evaluation||"",
+    data.accountId||"", data.accountName||"", data.broker||"",
+    data.balanceAfter||"", new Date().toLocaleString("id-ID")
+  ];
+  sheet.appendRow(row);
+  sheet.autoResizeColumns(1, row.length);
+  return jsonResponse({status:"success", id: id});
+}
+
+function updateTrade(ss, data) {
+  const sheet = ss.getSheetByName(SHEET_TRADES);
+  if (!sheet) return jsonResponse({status:"error", message:"Sheet tidak ditemukan"});
+  const rows = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0].toString() === data.id.toString()) {
+      const r = i + 1;
+      const updates = {
+        15: data.isCompleted?"YES":"NO",
+        16: data.result||rows[i][15],
+        17: data.closePrice||rows[i][16],
+        18: data.pnl!==undefined ? data.pnl : rows[i][17],
+        20: data.closeDate||rows[i][19],
+        21: data.closeTime||rows[i][20],
+        22: data.duration||rows[i][21],
+        23: data.emotion||rows[i][22],
+        24: data.evaluation||rows[i][23],
+        27: data.balanceAfter!==undefined ? data.balanceAfter : rows[i][26]
+      };
+      for (const [col, val] of Object.entries(updates)) {
+        sheet.getRange(r, parseInt(col)).setValue(val);
+      }
+      return jsonResponse({status:"success", updated: data.id});
+    }
+  }
+  return jsonResponse({status:"error", message:"Trade tidak ditemukan"});
+}
+
+function getTrades(ss, params) {
+  const sheet = ss.getSheetByName(SHEET_TRADES);
+  if (!sheet) return jsonResponse({status:"ok", trades:[]});
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const trades = data.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h,i) => obj[h] = row[i]);
+    return obj;
+  }).filter(t => !params.accountId || t["Akun ID"] == params.accountId);
+  return jsonResponse({status:"ok", trades});
+}
+
+function saveAccount(ss, data) {
+  let sheet = ss.getSheetByName(SHEET_ACCOUNTS);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_ACCOUNTS);
+    const headers = ["ID","Nama Akun","Broker","No ID Akun","Server","Currency","Saldo Awal","Saldo Sekarang","Dibuat"];
+    sheet.getRange(1,1,1,headers.length).setValues([headers])
+      .setBackground("#1a1a2e").setFontColor("#00d4aa").setFontWeight("bold");
+    sheet.setFrozenRows(1);
+  }
+  const id = data.id || Date.now().toString();
+  sheet.appendRow([id, data.name, data.broker, data.accountId, data.server,
+    data.currency, data.initialBalance, data.balance, new Date().toLocaleString("id-ID")]);
+  return jsonResponse({status:"success", id});
+}
+
+function updateAccountBalance(ss, data) {
+  const sheet = ss.getSheetByName(SHEET_ACCOUNTS);
+  if (!sheet) return jsonResponse({status:"error", message:"Sheet tidak ditemukan"});
+  const rows = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0].toString() === data.accountId.toString()) {
+      sheet.getRange(i+1, 8).setValue(data.newBalance);
+      return jsonResponse({status:"success"});
+    }
+  }
+  return jsonResponse({status:"error", message:"Akun tidak ditemukan"});
+}
+
+function getAccounts(ss) {
+  const sheet = ss.getSheetByName(SHEET_ACCOUNTS);
+  if (!sheet) return jsonResponse({status:"ok", accounts:[]});
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const accounts = data.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h,i) => obj[h] = row[i]);
+    return obj;
+  });
+  return jsonResponse({status:"ok", accounts});
+}
+
+function jsonResponse(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}</div>
+  <button class="copy-btn" onclick="copyScript()">📋 Copy Kode Apps Script</button>
+
+  <div class="step-item" style="margin-top:20px"><div class="step-num">4</div><div class="step-text">Klik <strong>Deploy → New Deployment</strong></div></div>
+  <div class="step-item"><div class="step-num">5</div><div class="step-text">Pilih type: <strong>Web App</strong>. Execute as: <strong>Me</strong>. Who has access: <strong>Anyone</strong>. Klik <strong>Deploy</strong></div></div>
+  <div class="step-item"><div class="step-num">6</div><div class="step-text"><strong>Copy URL</strong> yang muncul (bentuknya panjang, mulai dengan <code>https://script.google.com/macros/s/...</code>)</div></div>
+  <div class="step-item"><div class="step-num">7</div><div class="step-text">Paste URL tersebut di tombol <strong>⚙ Setup</strong> di pojok kanan atas, lalu klik Simpan.</div></div>
+  <div class="highlight-box" style="margin-top:8px">🎉 Selesai! Setiap trade yang kamu simpan dari Web App ini akan otomatis masuk ke Google Sheets kamu dengan semua fitur baru.</div>
+</div>
+
+<!-- ADD / EDIT LOT SIZE MODAL -->
+<div class="modal-overlay" id="add-lot-modal" onclick="closeAddLotModalOutside(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAddLotModal()">✕</button>
+    <h3 id="lot-modal-title">⚖️ Tambah Data Lot Size</h3>
+    <p>Isi data spesifikasi pair untuk kalkulasi otomatis.</p>
+    <input type="hidden" id="edit-lot-id" value="">
+
+    <div class="modal-field">
+      <label>Nama Pair</label>
+      <div class="pair-search-wrap" id="lot-pair-search-wrap">
+        <input type="text" class="pair-search-input" id="lot-pair-search" placeholder="Cari atau ketik pair... (e.g. XAUUSD)" autocomplete="off"
+          oninput="filterLotPairs(this.value)" onfocus="openLotPairDropdown()" onblur="delayCloseLotPairDropdown()">
+        <input type="hidden" id="lot-pair-value" value="">
+        <div class="pair-dropdown" id="lot-pair-dropdown"></div>
+      </div>
+    </div>
+
+    <div class="modal-field">
+      <label>Jarak Selisih Harga (Satuan Desimal Pair)</label>
+      <input type="number" id="lot-price-distance" placeholder="Contoh: 0.1 untuk XAUUSD, 0.0001 untuk EURUSD" step="0.00001" min="0"
+        oninput="calcLotPipSize()">
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Masukkan selisih harga sebagai referensi kalkulasi pip size</div>
+    </div>
+
+    <div class="modal-field">
+      <label>Pip Size (Otomatis / Manual)</label>
+      <input type="number" id="lot-pip-size" placeholder="Otomatis dari jarak harga, atau isi manual" step="0.00001" min="0">
+      <div style="font-size:11px;color:var(--muted);margin-top:4px" id="lot-pip-preview"></div>
+    </div>
+
+    <div class="modal-field">
+      <label>Besar Nominal Harga per 1 Lot</label>
+      <input type="number" id="lot-nominal" placeholder="Contoh: 100000 untuk Forex, 100 untuk XAUUSD" step="0.01" min="0">
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Nilai uang yang bergerak per 1 pip per 1 lot standard</div>
+    </div>
+
+    <div class="modal-field">
+      <label>Currency</label>
+      <select id="lot-currency">
+        <option value="USD">USD — US Dollar</option>
+        <option value="IDR">IDR — Rupiah</option>
+        <option value="USC">USC — US Cent</option>
+      </select>
+    </div>
+
+    <div class="modal-field">
+      <label>Catatan (opsional)</label>
+      <input type="text" id="lot-notes" placeholder="Contoh: Exness Standard, spread rata-rata 0.3">
+    </div>
+
+    <button class="save-url-btn" onclick="saveLotSize()">💾 Simpan Data Lot Size</button>
+  </div>
+</div>
+
+<!-- SETUP MODAL (API URL) -->
+<div class="modal-overlay" id="setup-modal" onclick="closeSetupModalOutside(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeSetupModal()">✕</button>
+    <h3>⚙ Koneksi Google Sheets</h3>
+    <p>Paste URL Web App dari Google Apps Script kamu. Lihat tab <strong>Setup</strong> untuk cara mendapatkannya.</p>
+    <div class="url-input-wrap">
+      <input type="text" id="api-url-input" placeholder="https://script.google.com/macros/s/...">
+    </div>
+    <div class="connection-status" id="conn-status"><span class="status-dot disconnected"></span>Belum terhubung</div>
+    <button class="save-url-btn" onclick="saveUrl()">Simpan & Test Koneksi</button>
+  </div>
+</div>
+
+<!-- ADD ACCOUNT MODAL -->
+<div class="modal-overlay" id="add-account-modal" onclick="closeAddAccModalOutside(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAddAccountModal()">✕</button>
+    <h3 id="acc-modal-title">➕ Buat Akun Baru</h3>
+    <p>Isi data akun trading kamu.</p>
+    <input type="hidden" id="edit-acc-id" value="">
+    <div class="modal-field"><label>Nama Akun</label><input type="text" id="acc-inp-name" placeholder="Contoh: Akun Utama, Live 1, Demo"></div>
+    <div class="modal-grid-2">
+      <div class="modal-field"><label>Nama Broker</label><input type="text" id="acc-inp-broker" placeholder="Exness, FBS, dll"></div>
+      <div class="modal-field"><label>Currency</label>
+        <select id="acc-inp-currency">
+          <option value="USD">USD</option>
+          <option value="IDR">IDR</option>
+          <option value="USDc">USDc (Cent)</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-field"><label>Saldo Awal</label><input type="number" id="acc-inp-balance" placeholder="0.00" step="0.01" min="0"></div>
+    <div class="modal-grid-2">
+      <div class="modal-field"><label>No ID Akun</label><input type="text" id="acc-inp-accid" placeholder="1234567890"></div>
+      <div class="modal-field"><label>Server</label><input type="text" id="acc-inp-server" placeholder="Exness-Real1"></div>
+    </div>
+    <button class="save-url-btn" onclick="saveAccount()">Simpan Akun</button>
+  </div>
+</div>
+
+<!-- ACCOUNT SELECT MODAL (for entry trade) -->
+<div class="modal-overlay" id="account-select-modal" onclick="closeAccSelectModalOutside(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAccountSelectModal()">✕</button>
+    <h3>Pilih Akun Trading</h3>
+    <p>Pilih akun yang akan digunakan untuk trade ini.</p>
+    <div class="account-select-list" id="account-select-list"></div>
+  </div>
+</div>
+
+<!-- EDIT TRADE MODAL -->
+<div class="edit-modal-overlay" id="edit-trade-modal">
+  <div class="edit-modal">
+    <button class="edit-modal-close" onclick="closeEditModal()">✕</button>
+    <h3>✏️ Edit Trade</h3>
+    <input type="hidden" id="edit-trade-id">
+
+    <div class="field"><label>Pair</label><input type="text" id="edit-pair"></div>
+    <div class="grid-2">
+      <div class="field"><label>Tanggal</label><input type="date" id="edit-date"></div>
+      <div class="field"><label>Jam Entry</label><input type="time" id="edit-time"></div>
+    </div>
+    <div class="grid-3">
+      <div class="field"><label>Entry</label><input type="number" id="edit-entry" step="0.00001"></div>
+      <div class="field"><label>SL</label><input type="number" id="edit-sl" step="0.00001"></div>
+      <div class="field"><label>TP</label><input type="number" id="edit-tp" step="0.00001"></div>
+    </div>
+
+    <div style="margin-bottom:12px">
+      <div class="trade-complete-row" id="edit-complete-row" onclick="toggleEditComplete()">
+        <input type="checkbox" id="edit-complete-chk" onclick="event.stopPropagation()">
+        <label for="edit-complete-chk">Trade is Completed</label>
+      </div>
+    </div>
+    <div id="edit-result-section" style="display:none">
+      <div class="field"><label>Hasil</label>
+        <div class="result-toggle">
+          <div class="result-btn win" onclick="setEditResult('WIN')">WIN</div>
+          <div class="result-btn loss" onclick="setEditResult('LOSS')">LOSS</div>
+          <div class="result-btn be" onclick="setEditResult('BREAKEVEN')">BE</div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label>Tgl Close</label><input type="date" id="edit-close-date"></div>
+        <div class="field"><label>Jam Close</label><input type="time" id="edit-close-time"></div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label>Close Price</label><input type="number" id="edit-close-price" step="0.00001"></div>
+        <div class="field"><label>P&L</label><input type="number" id="edit-pnl" step="0.01"></div>
+      </div>
+    </div>
+    <div class="field"><label>Evaluasi</label><textarea id="edit-eval" style="min-height:60px"></textarea></div>
+
+    <div class="edit-actions">
+      <button class="btn-cancel" onclick="closeEditModal()">Batal</button>
+      <button class="btn-save" onclick="saveEditTrade()">Simpan Perubahan</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let selectedDir = '';
+let selectedResult = '';
+let selectedEmo = '';
+let selectedTradingType = '';
+let editSelectedResult = '';
+let localTrades = JSON.parse(localStorage.getItem('tj_trades') || '[]');
+let accounts = JSON.parse(localStorage.getItem('tj_accounts') || '[]');
+let activeAccountId = localStorage.getItem('tj_active_account') || '';
+let apiUrl = localStorage.getItem('tj_api_url') || '';
+let lotSizes = JSON.parse(localStorage.getItem('tj_lot_sizes') || '[]');
+
+const ALL_PAIRS = {
+  'Majors': ['EURUSD','GBPUSD','USDJPY','USDCHF','AUDUSD','NZDUSD','USDCAD',
+             'EURUSDc','GBPUSDc','USDJPYc','USDCHFc','AUDUSDc','NZDUSDc','USDCADc'],
+  'Minors (Cross)': ['EURGBP','EURJPY','EURCHF','EURAUD','EURCAD','EURNZD',
+                     'GBPJPY','GBPCHF','GBPAUD','GBPCAD','GBPNZD',
+                     'AUDJPY','AUDCAD','AUDCHF','AUDNZD','NZDJPY','CADJPY','CHFJPY',
+                     'EURGBPc','EURJPYc','EURCHFc','EURAUDc','EURCADc',
+                     'GBPJPYc','GBPCHFc','GBPAUDc','GBPCADc'],
+  'Metals': ['XAUUSD','XAGUSD','XAUUSDc','XAGUSDc'],
+  'Crypto': ['BTCUSD','ETHUSD','BTCUSDc'],
+  'Indices': ['US30','US500','NAS100','GER40'],
+  'Energy': ['USOIL','UKOIL']
+};
+
+// ============================================================
+// INIT
+// ============================================================
+window.onload = () => {
+  const now = new Date();
+  document.getElementById('inp-date').value = now.toISOString().split('T')[0];
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('inp-time').value = `${hh}:${mm}`;
+
+  if (apiUrl) {
+    document.getElementById('api-url-input').value = apiUrl;
+    updateConnStatus(true);
+    loadLotSizesFromSheets();
+  }
+
+  buildPairDropdown('');
+  renderAccountSelector();
+  renderAccountsTab();
+  renderHistory();
+  renderDashboard();
+  updateHistoryAccountFilter();
+  renderLotSizeTab();
+};
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(name) {
+  ['dashboard','entry','history','lotsize','accounts','setup'].forEach(t => {
+    const el = document.getElementById(`tab-${t}`);
+    if (el) el.style.display = 'none';
+  });
+  document.querySelectorAll('.tab').forEach((el, i) => {
+    const tabs = ['dashboard','entry','history','lotsize','accounts','setup'];
+    el.classList.toggle('active', tabs[i] === name);
+  });
+  const tabEl = document.getElementById(`tab-${name}`);
+  if (tabEl) tabEl.style.display = 'block';
+  if (name === 'history') renderHistory();
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'accounts') renderAccountsTab();
+  if (name === 'lotsize') renderLotSizeTab();
+}
+
+// ============================================================
+// PAIR SEARCH
+// ============================================================
+function buildPairDropdown(filter) {
+  const dd = document.getElementById('pair-dropdown');
+  let html = '';
+  const f = filter.toLowerCase();
+  let hasResults = false;
+
+  for (const [group, pairs] of Object.entries(ALL_PAIRS)) {
+    const filtered = pairs.filter(p => !f || p.toLowerCase().includes(f));
+    if (filtered.length) {
+      hasResults = true;
+      html += `<div class="pair-group-label">${group}</div>`;
+      filtered.forEach(p => {
+        html += `<div class="pair-option" onmousedown="selectPair('${p}')">${p}</div>`;
+      });
+    }
+  }
+
+  if (!hasResults && filter) {
+    html += `<div class="pair-option" onmousedown="selectPair('${filter.toUpperCase()}')">${filter.toUpperCase()} (custom)</div>`;
+  }
+
+  dd.innerHTML = html;
+}
+
+function filterPairs(val) {
+  buildPairDropdown(val);
+  document.getElementById('inp-pair').value = val.toUpperCase();
+  openPairDropdown();
+}
+
+function openPairDropdown() {
+  buildPairDropdown(document.getElementById('inp-pair-search').value);
+  document.getElementById('pair-dropdown').classList.add('open');
+}
+
+function delayClosePairDropdown() {
+  setTimeout(() => document.getElementById('pair-dropdown').classList.remove('open'), 200);
+}
+
+function selectPair(pair) {
+  document.getElementById('inp-pair').value = pair;
+  document.getElementById('inp-pair-search').value = pair;
+  document.getElementById('pair-dropdown').classList.remove('open');
+  // Auto-load lot size for this pair
+  checkLotSizeForPair(pair);
+  calcRR();
+  calcRiskNominal();
+}
+
+function checkLotSizeForPair(pair) {
+  const ls = lotSizes.find(l => l.pair.toUpperCase() === pair.toUpperCase());
+  const box = document.getElementById('lot-linked-box');
+  if (ls) {
+    document.getElementById('lot-linked-pair').textContent = ls.pair;
+    document.getElementById('ll-pipsize').textContent = ls.pipSize;
+    document.getElementById('ll-nominal').textContent = Number(ls.nominal).toLocaleString('id-ID') + ' ' + ls.currency;
+    document.getElementById('ll-currency').textContent = ls.currency;
+    box.classList.add('show');
+  } else {
+    box.classList.remove('show');
+  }
+}
+
+// ============================================================
+// DIRECTION
+// ============================================================
+function setDir(d) {
+  selectedDir = d;
+  document.querySelectorAll('.dir-btn').forEach(el => el.classList.remove('active'));
+  document.querySelector(`.dir-btn.${d.toLowerCase()}`).classList.add('active');
+  calcRR();
+  calcRiskNominal();
+}
+
+function setTradingType(t) {
+  selectedTradingType = t;
+  document.querySelectorAll('.type-btn').forEach(el => el.classList.remove('active'));
+  const map = { LIVE:'live', BACKTEST:'backtest', FORWARDTEST:'forwardtest' };
+  document.querySelector(`.type-btn.${map[t]}`).classList.add('active');
+}
+
+// ============================================================
+// RESULT
+// ============================================================
+function setResult(r) {
+  selectedResult = r;
+  document.querySelectorAll('.result-btn').forEach(el => el.classList.remove('active'));
+  const map = { WIN:'win', LOSS:'loss', BREAKEVEN:'be' };
+  document.querySelector(`.result-btn.${map[r]}`).classList.add('active');
+}
+
+function setEditResult(r) {
+  editSelectedResult = r;
+  document.querySelectorAll('#edit-trade-modal .result-btn').forEach(el => el.classList.remove('active'));
+  const map = { WIN:'win', LOSS:'loss', BREAKEVEN:'be' };
+  const btn = document.querySelector(`#edit-trade-modal .result-btn.${map[r]}`);
+  if (btn) btn.classList.add('active');
+}
+
+// ============================================================
+// EMOTION
+// ============================================================
+function setEmo(e) {
+  selectedEmo = e;
+  document.querySelectorAll('.emo-btn').forEach(el => {
+    if (el.getAttribute('onclick') && el.getAttribute('onclick').includes(`'${e}'`)) {
+      el.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
+}
+
+// ============================================================
+// RR CALCULATOR
+// ============================================================
+function calcRR() {
+  const entry = parseFloat(document.getElementById('inp-entry').value);
+  const sl = parseFloat(document.getElementById('inp-sl').value);
+  const tp = parseFloat(document.getElementById('inp-tp').value);
+  const pair = document.getElementById('inp-pair').value.toUpperCase();
+  const box = document.getElementById('rr-box');
+
+  if (!entry || !sl || !tp) { box.classList.remove('show'); return; }
+
+  const slDist = Math.abs(entry - sl);
+  const tpDist = Math.abs(tp - entry);
+  if (slDist === 0) { box.classList.remove('show'); return; }
+
+  const rr = (tpDist / slDist).toFixed(2);
+
+  // Use lot size pip size if available
+  const ls = lotSizes.find(l => l.pair.toUpperCase() === pair);
+  let slPips, tpPips;
+  if (ls && parseFloat(ls.pipSize) > 0) {
+    slPips = (slDist / parseFloat(ls.pipSize)).toFixed(1);
+    tpPips = (tpDist / parseFloat(ls.pipSize)).toFixed(1);
+  } else {
+    slPips = (slDist * 10000).toFixed(1);
+    tpPips = (tpDist * 10000).toFixed(1);
+  }
+
+  document.getElementById('rr-display').textContent = `1:${rr}`;
+  document.getElementById('sl-pips').textContent = slPips;
+  document.getElementById('tp-pips').textContent = tpPips;
+  box.classList.add('show');
+}
+
+// ============================================================
+// RISK NOMINAL & AUTO RISK%
+// ============================================================
+function calcRiskNominal() {
+  const acc = getActiveAccount();
+  const entry = parseFloat(document.getElementById('inp-entry').value);
+  const sl = parseFloat(document.getElementById('inp-sl').value);
+  const tp = parseFloat(document.getElementById('inp-tp').value);
+  const lot = parseFloat(document.getElementById('inp-lot').value);
+  const pair = document.getElementById('inp-pair').value.toUpperCase();
+  const box = document.getElementById('risk-info-box');
+  const riskInput = document.getElementById('inp-risk');
+
+  if (!entry || !sl || !acc) { box.classList.remove('show'); return; }
+
+  const balance = parseFloat(acc.balance) || 0;
+  const currency = acc.currency || 'USD';
+  const slDist = Math.abs(entry - sl);
+  const tpDist = tp ? Math.abs(tp - entry) : 0;
+
+  // Try to get lot size config for this pair
+  const ls = lotSizes.find(l => l.pair.toUpperCase() === pair);
+
+  let estLoss = 0, estProfit = 0;
+
+  if (ls && parseFloat(ls.nominal) > 0 && parseFloat(ls.pipSize) > 0) {
+    // Use lot size config: Risk% = (Jarak SL x Nominal per lot x Lot) / Saldo x 100
+    const nominalPerLot = parseFloat(ls.nominal);
+    const pipSize = parseFloat(ls.pipSize);
+    const slPips = slDist / pipSize;
+    const tpPips = tpDist / pipSize;
+    estLoss = lot ? -(slPips * nominalPerLot * lot) : 0;
+    estProfit = (lot && tpDist) ? (tpPips * nominalPerLot * lot) : 0;
+  } else {
+    // Fallback: approximate pip value
+    const pipVal = currency === 'USDc' ? 0.001 : (currency === 'IDR' ? 150 : 10);
+    const pipsLoss = slDist * 10000;
+    const pipsGain = tpDist * 10000;
+    estLoss = lot ? -(lot * pipVal * pipsLoss) : 0;
+    estProfit = lot ? (lot * pipVal * pipsGain) : 0;
+  }
+
+  // Auto Risk%: (Jarak SL x Nominal per lot x Lot) / Saldo x 100
+  if (balance > 0 && slDist > 0 && lot) {
+    const riskPct = (Math.abs(estLoss) / balance) * 100;
+    riskInput.value = riskPct.toFixed(2);
+  } else {
+    riskInput.value = '';
+  }
+
+  const lsCurrency = ls ? ls.currency : currency;
+  const fmt = (n) => n.toFixed(2) + ' ' + lsCurrency;
+  document.getElementById('est-loss-display').textContent = lot ? fmt(estLoss) : '—';
+  document.getElementById('est-profit-display').textContent = (lot && tp) ? fmt(estProfit) : '—';
+  box.classList.add('show');
+}
+
+// ============================================================
+// TRADE COMPLETE CHECKBOX
+// ============================================================
+function toggleTradeComplete() {
+  const chk = document.getElementById('trade-complete-chk');
+  chk.checked = !chk.checked;
+  const row = document.getElementById('trade-complete-row');
+  const fields = document.getElementById('trade-result-fields');
+  row.classList.toggle('checked', chk.checked);
+  fields.classList.toggle('show', chk.checked);
+}
+
+function toggleEditComplete() {
+  const chk = document.getElementById('edit-complete-chk');
+  chk.checked = !chk.checked;
+  const row = document.getElementById('edit-complete-row');
+  const section = document.getElementById('edit-result-section');
+  row.classList.toggle('checked', chk.checked);
+  section.style.display = chk.checked ? 'block' : 'none';
+}
+
+// ============================================================
+// DURATION CALCULATOR
+// ============================================================
+function calcDuration() {
+  const openDate = document.getElementById('inp-date').value;
+  const openTime = document.getElementById('inp-time').value;
+  const closeDate = document.getElementById('inp-close-date').value;
+  const closeTime = document.getElementById('inp-close-time').value;
+  const el = document.getElementById('duration-display');
+
+  if (!openDate || !openTime || !closeDate || !closeTime) { el.classList.remove('show'); return; }
+
+  const open = new Date(`${openDate}T${openTime}`);
+  const close = new Date(`${closeDate}T${closeTime}`);
+  const diff = close - open;
+  if (diff < 0) { el.textContent = '⚠️ Waktu close lebih awal dari open'; el.classList.add('show'); return; }
+
+  const dur = formatDuration(diff);
+  el.textContent = `⏱ Durasi: ${dur}`;
+  el.classList.add('show');
+}
+
+function formatDuration(ms) {
+  const s = Math.floor(ms / 1000) % 60;
+  const m = Math.floor(ms / 60000) % 60;
+  const h = Math.floor(ms / 3600000) % 24;
+  const d = Math.floor(ms / 86400000);
+  return `${d}H ${String(h).padStart(2,'0')}J ${String(m).padStart(2,'0')}M ${String(s).padStart(2,'0')}D`;
+}
+
+// ============================================================
+// SETUP LAINNYA
+// ============================================================
+function toggleOtherSetup(val) {
+  document.getElementById('other-setup-field').style.display = val === 'Lainnya' ? 'block' : 'none';
+}
+
+// ============================================================
+// ACCOUNTS
+// ============================================================
+function getActiveAccount() {
+  return accounts.find(a => a.id === activeAccountId) || null;
+}
+
+function setActiveAccount(id) {
+  activeAccountId = id;
+  localStorage.setItem('tj_active_account', id);
+  renderAccountSelector();
+  renderDashboard();
+}
+
+function renderAccountSelector() {
+  const bar = document.getElementById('selected-account-bar');
+  const warn = document.getElementById('no-account-warn');
+  const balBar = document.getElementById('balance-bar');
+
+  if (!accounts.length) {
+    warn.style.display = 'block';
+    bar.style.display = 'none';
+    balBar.style.display = 'none';
+    return;
+  }
+  warn.style.display = 'none';
+
+  if (!activeAccountId || !getActiveAccount()) {
+    setActiveAccount(accounts[0].id);
+    return;
+  }
+
+  const acc = getActiveAccount();
+  bar.style.display = 'flex';
+  balBar.style.display = 'flex';
+  document.getElementById('sel-acc-name').textContent = `${acc.name} — ${acc.broker}`;
+  document.getElementById('sel-acc-detail').textContent = `ID: ${acc.accountId || '—'} | Server: ${acc.server || '—'}`;
+  document.getElementById('balance-display').textContent = formatBalance(acc.balance, acc.currency);
+  document.getElementById('balance-currency-display').textContent = acc.currency;
+
+  // Risk 3% dari saldo terupdate
+  const risk3 = (parseFloat(acc.balance) || 0) * 0.03;
+  document.getElementById('risk3-display').textContent = formatBalance(risk3, acc.currency) + ' ' + acc.currency;
+
+  // Update P&L label currency
+  document.getElementById('pnl-label').textContent = `Profit / Loss (${acc.currency})`;
+}
+
+function formatBalance(val, currency) {
+  const n = parseFloat(val) || 0;
+  if (currency === 'IDR') return n.toLocaleString('id-ID');
+  return n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+function renderAccountsTab() {
+  const list = document.getElementById('accounts-list');
+  if (!accounts.length) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">👤</div><p>Belum ada akun trading.<br>Klik tombol di bawah untuk membuat akun.</p></div>`;
+    return;
+  }
+  list.innerHTML = accounts.map(acc => {
+    const isActive = acc.id === activeAccountId;
+    return `
+    <div class="account-card ${isActive ? 'active-account' : ''}">
+      <div class="account-card-header">
+        <div>
+          <div class="account-name">${acc.name} ${isActive ? '<span class="active-badge">AKTIF</span>' : ''}</div>
+          <div class="account-broker">${acc.broker}</div>
+        </div>
+        <div class="account-balance">${formatBalance(acc.balance, acc.currency)} <span style="font-size:12px;color:var(--muted)">${acc.currency}</span></div>
+      </div>
+      <div class="account-meta">ID: ${acc.accountId || '—'} | Server: ${acc.server || '—'}</div>
+      <div class="account-actions">
+        ${!isActive ? `<button class="btn-sm primary" onclick="setActiveAccount('${acc.id}')">Set Aktif</button>` : ''}
+        <button class="btn-sm" onclick="openEditAccountModal('${acc.id}')">Edit</button>
+        <button class="btn-sm danger" onclick="deleteAccount('${acc.id}')">Hapus</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openAddAccountModal() {
+  document.getElementById('acc-modal-title').textContent = '➕ Buat Akun Baru';
+  document.getElementById('edit-acc-id').value = '';
+  document.getElementById('acc-inp-name').value = '';
+  document.getElementById('acc-inp-broker').value = '';
+  document.getElementById('acc-inp-currency').value = 'USD';
+  document.getElementById('acc-inp-balance').value = '';
+  document.getElementById('acc-inp-accid').value = '';
+  document.getElementById('acc-inp-server').value = '';
+  document.getElementById('add-account-modal').classList.add('open');
+}
+
+function openEditAccountModal(id) {
+  const acc = accounts.find(a => a.id === id);
+  if (!acc) return;
+  document.getElementById('acc-modal-title').textContent = '✏️ Edit Akun';
+  document.getElementById('edit-acc-id').value = id;
+  document.getElementById('acc-inp-name').value = acc.name;
+  document.getElementById('acc-inp-broker').value = acc.broker;
+  document.getElementById('acc-inp-currency').value = acc.currency;
+  document.getElementById('acc-inp-balance').value = acc.balance;
+  document.getElementById('acc-inp-accid').value = acc.accountId || '';
+  document.getElementById('acc-inp-server').value = acc.server || '';
+  document.getElementById('add-account-modal').classList.add('open');
+}
+
+function closeAddAccountModal() { document.getElementById('add-account-modal').classList.remove('open'); }
+function closeAddAccModalOutside(e) { if (e.target.id === 'add-account-modal') closeAddAccountModal(); }
+
+function saveAccount() {
+  const name = document.getElementById('acc-inp-name').value.trim();
+  const broker = document.getElementById('acc-inp-broker').value.trim();
+  const currency = document.getElementById('acc-inp-currency').value;
+  const balance = parseFloat(document.getElementById('acc-inp-balance').value) || 0;
+  const accountId = document.getElementById('acc-inp-accid').value.trim();
+  const server = document.getElementById('acc-inp-server').value.trim();
+  const editId = document.getElementById('edit-acc-id').value;
+
+  if (!name) { showToast('Nama akun tidak boleh kosong!', 'error'); return; }
+  if (!broker) { showToast('Nama broker tidak boleh kosong!', 'error'); return; }
+
+  if (editId) {
+    const idx = accounts.findIndex(a => a.id === editId);
+    if (idx !== -1) {
+      accounts[idx] = { ...accounts[idx], name, broker, currency, balance, accountId, server };
+    }
+  } else {
+    const newAcc = { id: Date.now().toString(), name, broker, currency, balance, initialBalance: balance, accountId, server };
+    accounts.push(newAcc);
+    if (!activeAccountId) setActiveAccount(newAcc.id);
+  }
+
+  localStorage.setItem('tj_accounts', JSON.stringify(accounts));
+  closeAddAccountModal();
+  renderAccountsTab();
+  renderAccountSelector();
+  renderDashboard();
+  updateHistoryAccountFilter();
+  showToast('✅ Akun berhasil disimpan!', 'success');
+
+  if (apiUrl) {
+    const acc = editId ? accounts.find(a => a.id === editId) : accounts[accounts.length-1];
+    fetch(apiUrl, { method:'POST', body: JSON.stringify({action:'save_account', ...acc}), headers: {'Content-Type':'application/json'} }).catch(()=>{});
+  }
+}
+
+function deleteAccount(id) {
+  if (!confirm('Hapus akun ini? Riwayat trade-nya tidak terhapus.')) return;
+  accounts = accounts.filter(a => a.id !== id);
+  localStorage.setItem('tj_accounts', JSON.stringify(accounts));
+  if (activeAccountId === id) {
+    activeAccountId = accounts.length ? accounts[0].id : '';
+    localStorage.setItem('tj_active_account', activeAccountId);
+  }
+  renderAccountsTab();
+  renderAccountSelector();
+  renderDashboard();
+  updateHistoryAccountFilter();
+  showToast('Akun dihapus.', 'success');
+}
+
+function openAccountSelectModal() {
+  const list = document.getElementById('account-select-list');
+  if (!accounts.length) { showToast('Belum ada akun. Buat di tab Akun.', 'error'); return; }
+  list.innerHTML = accounts.map(acc => `
+    <div class="account-select-item" onclick="selectAccountForEntry('${acc.id}')">
+      <div class="asi-name">${acc.name} — ${acc.broker}</div>
+      <div class="asi-detail">ID: ${acc.accountId || '—'} | Server: ${acc.server || '—'}</div>
+      <div class="asi-balance">${formatBalance(acc.balance, acc.currency)} <span style="font-size:12px;color:var(--muted)">${acc.currency}</span></div>
+    </div>
+  `).join('');
+  document.getElementById('account-select-modal').classList.add('open');
+}
+
+function selectAccountForEntry(id) {
+  setActiveAccount(id);
+  document.getElementById('account-select-modal').classList.remove('open');
+  calcRiskNominal();
+}
+
+function closeAccountSelectModal() { document.getElementById('account-select-modal').classList.remove('open'); }
+function closeAccSelectModalOutside(e) { if (e.target.id === 'account-select-modal') closeAccountSelectModal(); }
+
+function updateBalanceAfterTrade() {
+  const acc = getActiveAccount();
+  if (!acc) return;
+  const pnl = parseFloat(document.getElementById('inp-pnl').value) || 0;
+  const newBal = (parseFloat(acc.balance) || 0) + pnl;
+  document.getElementById('floating-pnl-display').textContent = (pnl >= 0 ? '+' : '') + pnl.toFixed(2) + ' ' + acc.currency;
+  document.getElementById('floating-pnl-display').style.color = pnl >= 0 ? 'var(--buy)' : 'var(--sell)';
+}
+
+function applyPnlToBalance(pnl) {
+  const acc = getActiveAccount();
+  if (!acc) return;
+  const idx = accounts.findIndex(a => a.id === acc.id);
+  if (idx === -1) return;
+  const newBal = (parseFloat(acc.balance) || 0) + (parseFloat(pnl) || 0);
+  accounts[idx].balance = newBal;
+  localStorage.setItem('tj_accounts', JSON.stringify(accounts));
+  renderAccountSelector();
+  renderDashboard();
+
+  if (apiUrl) {
+    fetch(apiUrl, { method:'POST', body: JSON.stringify({action:'update_account_balance', accountId: acc.id, newBalance: newBal}), headers: {'Content-Type':'application/json'} }).catch(()=>{});
+  }
+}
+
+// ============================================================
+// SUBMIT TRADE
+// ============================================================
+async function submitTrade() {
+  const pair = document.getElementById('inp-pair').value;
+  const entryPrice = document.getElementById('inp-entry').value;
+  const acc = getActiveAccount();
+
+  if (!acc) { showToast('Pilih akun trading dulu!', 'error'); return; }
+  if (!pair) { showToast('Pilih pair dulu!', 'error'); return; }
+  if (!selectedDir) { showToast('Pilih arah BUY/SELL!', 'error'); return; }
+  if (!entryPrice) { showToast('Isi entry price!', 'error'); return; }
+
+  const isCompleted = document.getElementById('trade-complete-chk').checked;
+  const pnl = document.getElementById('inp-pnl').value;
+  const closeDate = document.getElementById('inp-close-date').value;
+  const closeTime = document.getElementById('inp-close-time').value;
+
+  let duration = '';
+  if (isCompleted && closeDate && closeTime) {
+    const openDate = document.getElementById('inp-date').value;
+    const openTime = document.getElementById('inp-time').value;
+    const open = new Date(`${openDate}T${openTime}`);
+    const close = new Date(`${closeDate}T${closeTime}`);
+    duration = formatDuration(close - open);
+  }
+
+  const setup = document.getElementById('inp-setup').value;
+  const setupOther = setup === 'Lainnya' ? document.getElementById('inp-setup-other').value : '';
+
+  const trade = {
+    id: Date.now().toString(),
+    date: document.getElementById('inp-date').value,
+    time: document.getElementById('inp-time').value,
+    pair, direction: selectedDir,
+    entryPrice,
+    stopLoss: document.getElementById('inp-sl').value,
+    takeProfit: document.getElementById('inp-tp').value,
+    lotSize: document.getElementById('inp-lot').value,
+    riskPercent: document.getElementById('inp-risk').value,
+    setup, setupOther,
+    timeframe: document.getElementById('inp-tf').value,
+    notes: document.getElementById('inp-notes').value,
+    tradingType: selectedTradingType,
+    isCompleted,
+    result: isCompleted ? selectedResult : '',
+    closePrice: isCompleted ? document.getElementById('inp-close').value : '',
+    closeDate: isCompleted ? closeDate : '',
+    closeTime: isCompleted ? closeTime : '',
+    duration: isCompleted ? duration : '',
+    pnl: isCompleted ? pnl : '',
+    emotion: isCompleted ? selectedEmo : '',
+    evaluation: isCompleted ? document.getElementById('inp-eval').value : '',
+    currency: acc.currency,
+    accountId: acc.id,
+    accountName: acc.name,
+    broker: acc.broker,
+    balanceAfter: isCompleted && pnl ? (parseFloat(acc.balance) + parseFloat(pnl)) : acc.balance
+  };
+
+  localTrades.push(trade);
+  localStorage.setItem('tj_trades', JSON.stringify(localTrades));
+
+  if (isCompleted && pnl) applyPnlToBalance(pnl);
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Menyimpan...';
+
+  if (apiUrl) {
+    try {
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        body: JSON.stringify({action:'save_trade', ...trade}),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const json = await res.json();
+      if (json.status === 'success') {
+        showToast('✅ Tersimpan ke Google Sheets!', 'success');
+      } else {
+        showToast('⚠ Disimpan lokal. Error Sheets: ' + json.message, 'error');
+      }
+    } catch(err) {
+      showToast('📱 Disimpan lokal (offline)', 'success');
+    }
+  } else {
+    showToast('✅ Trade disimpan lokal!', 'success');
+  }
+
+  resetForm();
+  btn.disabled = false;
+  btn.textContent = '💾 Simpan Trade';
+  renderDashboard();
+}
+
+function resetForm() {
+  ['inp-entry','inp-sl','inp-tp','inp-lot','inp-risk','inp-close','inp-pnl',
+   'inp-notes','inp-eval','inp-close-date','inp-close-time','inp-setup-other'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('inp-pair').value = '';
+  document.getElementById('inp-pair-search').value = '';
+  document.getElementById('inp-setup').value = '';
+  document.getElementById('inp-tf').value = '';
+  document.getElementById('other-setup-field').style.display = 'none';
+  document.getElementById('rr-box').classList.remove('show');
+  document.getElementById('risk-info-box').classList.remove('show');
+  document.getElementById('duration-display').classList.remove('show');
+  document.getElementById('trade-complete-chk').checked = false;
+  document.getElementById('trade-complete-row').classList.remove('checked');
+  document.getElementById('trade-result-fields').classList.remove('show');
+  document.getElementById('floating-pnl-display').textContent = '—';
+  document.getElementById('floating-pnl-display').style.color = 'var(--muted)';
+  selectedDir = ''; selectedResult = ''; selectedEmo = ''; selectedTradingType = '';
+  document.querySelectorAll('.dir-btn,.result-btn,.emo-btn,.type-btn').forEach(el => el.classList.remove('active'));
+
+  const now = new Date();
+  document.getElementById('inp-date').value = now.toISOString().split('T')[0];
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('inp-time').value = `${hh}:${mm}`;
+}
+
+// ============================================================
+// HISTORY
+// ============================================================
+function updateHistoryAccountFilter() {
+  const sel = document.getElementById('history-filter-acc');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Semua Akun</option>' +
+    accounts.map(a => `<option value="${a.id}">${a.name} — ${a.broker}</option>`).join('');
+  sel.value = cur;
+}
+
+function renderHistory() {
+  const el = document.getElementById('history-list');
+  const filterAcc = document.getElementById('history-filter-acc')?.value || '';
+
+  let trades = [...localTrades].reverse();
+  if (filterAcc) trades = trades.filter(t => t.accountId === filterAcc);
+
+  if (!trades.length) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>Belum ada trade di sesi ini.</p></div>`;
+    return;
+  }
+
+  el.innerHTML = trades.map(t => {
+    const acc = accounts.find(a => a.id === t.accountId);
+    const accLabel = acc ? `${acc.name} · ${acc.broker}` : (t.accountName || '—');
+    const pnlNum = parseFloat(t.pnl) || 0;
+    const currency = t.currency || 'USD';
+    return `
+    <div class="trade-card">
+      <div class="trade-card-header">
+        <span class="trade-pair">${t.pair}</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="trade-direction ${t.direction}">${t.direction}</span>
+          <button class="btn-sm" onclick="openEditModal('${t.id}')">✏ Edit</button>
+        </div>
+      </div>
+      <div class="trade-meta">📅 ${t.date} ${t.time} · ${t.setup || '-'} · ${t.timeframe || '-'}${t.tradingType ? ' · <span style="font-weight:600;color:' + (t.tradingType==='LIVE'?'var(--sell)':t.tradingType==='BACKTEST'?'var(--accent2)':'#f0a030') + '">' + (t.tradingType==='LIVE'?'🔴 Live':t.tradingType==='BACKTEST'?'📊 Back Test':'🔬 Forward Test') + '</span>' : ''}</div>
+      <div class="trade-meta">👤 ${accLabel}</div>
+      <div class="trade-meta">Entry: ${t.entryPrice} | SL: ${t.stopLoss || '-'} | TP: ${t.takeProfit || '-'}</div>
+      ${t.isCompleted
+        ? `<div class="trade-pnl ${pnlNum >= 0 ? 'pos' : 'neg'}">${t.result || ''} ${t.pnl ? (pnlNum >= 0 ? '+' : '') + pnlNum.toFixed(2) + ' ' + currency : ''}</div>
+           ${t.duration ? `<div class="trade-meta">⏱ ${t.duration}</div>` : ''}`
+        : `<div style="font-size:11px;color:var(--muted);margin-top:6px">🕐 Posisi masih terbuka</div>`
+      }
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// EDIT TRADE
+// ============================================================
+function openEditModal(id) {
+  const t = localTrades.find(x => x.id === id);
+  if (!t) return;
+
+  document.getElementById('edit-trade-id').value = id;
+  document.getElementById('edit-pair').value = t.pair || '';
+  document.getElementById('edit-date').value = t.date || '';
+  document.getElementById('edit-time').value = t.time || '';
+  document.getElementById('edit-entry').value = t.entryPrice || '';
+  document.getElementById('edit-sl').value = t.stopLoss || '';
+  document.getElementById('edit-tp').value = t.takeProfit || '';
+  document.getElementById('edit-eval').value = t.evaluation || '';
+  document.getElementById('edit-close-price').value = t.closePrice || '';
+  document.getElementById('edit-pnl').value = t.pnl || '';
+  document.getElementById('edit-close-date').value = t.closeDate || '';
+  document.getElementById('edit-close-time').value = t.closeTime || '';
+
+  const chk = document.getElementById('edit-complete-chk');
+  chk.checked = !!t.isCompleted;
+  document.getElementById('edit-complete-row').classList.toggle('checked', !!t.isCompleted);
+  document.getElementById('edit-result-section').style.display = t.isCompleted ? 'block' : 'none';
+
+  editSelectedResult = t.result || '';
+  document.querySelectorAll('#edit-trade-modal .result-btn').forEach(el => el.classList.remove('active'));
+  if (editSelectedResult) {
+    const map = { WIN:'win', LOSS:'loss', BREAKEVEN:'be' };
+    const btn = document.querySelector(`#edit-trade-modal .result-btn.${map[editSelectedResult]}`);
+    if (btn) btn.classList.add('active');
+  }
+
+  document.getElementById('edit-trade-modal').classList.add('open');
+}
+
+function closeEditModal() { document.getElementById('edit-trade-modal').classList.remove('open'); }
+
+function saveEditTrade() {
+  const id = document.getElementById('edit-trade-id').value;
+  const idx = localTrades.findIndex(x => x.id === id);
+  if (idx === -1) { showToast('Trade tidak ditemukan!', 'error'); return; }
+
+  const isCompleted = document.getElementById('edit-complete-chk').checked;
+  const oldPnl = parseFloat(localTrades[idx].pnl) || 0;
+  const newPnl = parseFloat(document.getElementById('edit-pnl').value) || 0;
+
+  const closeDate = document.getElementById('edit-close-date').value;
+  const closeTime = document.getElementById('edit-close-time').value;
+  const openDate = document.getElementById('edit-date').value;
+  const openTime = document.getElementById('edit-time').value;
+
+  let duration = localTrades[idx].duration || '';
+  if (isCompleted && closeDate && closeTime && openDate && openTime) {
+    const open = new Date(`${openDate}T${openTime}`);
+    const close = new Date(`${closeDate}T${closeTime}`);
+    if (close > open) duration = formatDuration(close - open);
+  }
+
+  localTrades[idx] = {
+    ...localTrades[idx],
+    pair: document.getElementById('edit-pair').value,
+    date: openDate,
+    time: openTime,
+    entryPrice: document.getElementById('edit-entry').value,
+    stopLoss: document.getElementById('edit-sl').value,
+    takeProfit: document.getElementById('edit-tp').value,
+    isCompleted,
+    result: isCompleted ? editSelectedResult : '',
+    closePrice: isCompleted ? document.getElementById('edit-close-price').value : '',
+    closeDate: isCompleted ? closeDate : '',
+    closeTime: isCompleted ? closeTime : '',
+    duration: isCompleted ? duration : '',
+    pnl: isCompleted ? newPnl : '',
+    evaluation: document.getElementById('edit-eval').value,
+  };
+
+  // Adjust balance: reverse old pnl, apply new pnl
+  const wasCompleted = !!localTrades[idx].isCompleted;
+  if (isCompleted) {
+    const diff = newPnl - (wasCompleted ? oldPnl : 0);
+    if (diff !== 0) applyPnlToBalance(diff);
+    localTrades[idx].balanceAfter = (parseFloat(getActiveAccount()?.balance) || 0);
+  }
+
+  localStorage.setItem('tj_trades', JSON.stringify(localTrades));
+
+  if (apiUrl) {
+    fetch(apiUrl, {
+      method: 'POST',
+      body: JSON.stringify({action:'update_trade', ...localTrades[idx]}),
+      headers: {'Content-Type':'application/json'}
+    }).catch(()=>{});
+  }
+
+  closeEditModal();
+  renderHistory();
+  renderDashboard();
+  showToast('✅ Trade berhasil diperbarui!', 'success');
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard() {
+  const el = document.getElementById('dashboard-content');
+  const acc = getActiveAccount();
+
+  if (!accounts.length) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">📊</div><p>Buat akun trading dulu<br>di tab <strong>Akun</strong>, lalu mulai mencatat trade.</p></div>`;
+    return;
+  }
+
+  const accTrades = localTrades.filter(t => !acc || t.accountId === acc.id);
+  const closed = accTrades.filter(t => t.isCompleted && t.result);
+  const wins = closed.filter(t => t.result === 'WIN');
+  const losses = closed.filter(t => t.result === 'LOSS');
+  const wr = closed.length ? Math.round(wins.length / closed.length * 100) : 0;
+  const totalPnl = closed.reduce((s,t) => s + (parseFloat(t.pnl)||0), 0);
+  const initialBal = acc ? (parseFloat(acc.initialBalance) || parseFloat(acc.balance) || 0) : 0;
+  const currentBal = acc ? (parseFloat(acc.balance) || 0) : 0;
+  const currency = acc ? acc.currency : 'USD';
+  const pnlChange = currentBal - initialBal;
+  const pnlPct = initialBal > 0 ? ((pnlChange / initialBal) * 100).toFixed(2) : 0;
+
+  const avgWin = wins.length ? (wins.reduce((s,t) => s + (parseFloat(t.pnl)||0), 0) / wins.length).toFixed(2) : 0;
+  const avgLoss = losses.length ? (losses.reduce((s,t) => s + (parseFloat(t.pnl)||0), 0) / losses.length).toFixed(2) : 0;
+
+  const recent = [...closed].reverse().slice(0, 5);
+
+  el.innerHTML = `
+    <div class="dash-section">
+      <div class="equity-card">
+        <div class="equity-label">${acc ? acc.name + ' · ' + acc.broker : 'Semua Akun'}</div>
+        <div class="equity-value">${formatBalance(currentBal, currency)} <span style="font-size:14px;color:var(--muted)">${currency}</span></div>
+        <div class="equity-change ${pnlChange >= 0 ? 'pos' : 'neg'}">${pnlChange >= 0 ? '▲' : '▼'} ${Math.abs(pnlChange).toFixed(2)} ${currency} (${pnlChange >= 0 ? '+' : ''}${pnlPct}%) dari modal awal</div>
+      </div>
+
+      <div class="mini-stat-grid">
+        <div class="mini-stat">
+          <div class="m-val" style="color:var(--accent)">${accTrades.length}</div>
+          <div class="m-lbl">Total Trade</div>
+        </div>
+        <div class="mini-stat">
+          <div class="m-val" style="color:${wr>=50?'var(--buy)':'var(--sell)'}">${wr}%</div>
+          <div class="m-lbl">Win Rate</div>
+        </div>
+        <div class="mini-stat">
+          <div class="m-val" style="color:${totalPnl>=0?'var(--buy)':'var(--sell)'}">${totalPnl>=0?'+':''}${totalPnl.toFixed(2)}</div>
+          <div class="m-lbl">Total P&L</div>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="val" style="color:var(--buy)">${wins.length}</div>
+          <div class="lbl">Trade Menang</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" style="color:var(--sell)">${losses.length}</div>
+          <div class="lbl">Trade Kalah</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" style="color:var(--buy);font-size:16px">+${avgWin}</div>
+          <div class="lbl">Avg Profit</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" style="color:var(--sell);font-size:16px">${avgLoss}</div>
+          <div class="lbl">Avg Loss</div>
+        </div>
+      </div>
+
+      <div class="progress-bar-wrap">
+        <div class="progress-header">
+          <span>Win Rate</span>
+          <span style="color:${wr>=50?'var(--buy)':'var(--sell)'}">${wr}% (${wins.length}W / ${losses.length}L)</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" style="width:${wr}%;background:${wr>=50?'var(--buy)':'var(--sell)'}"></div>
+        </div>
+      </div>
+    </div>
+
+    ${recent.length ? `
+    <div class="dash-section">
+      <div class="dash-title">🕐 Trade Terakhir</div>
+      <div class="trade-card" style="padding:8px 14px">
+        ${recent.map(t => {
+          const pnlNum = parseFloat(t.pnl) || 0;
+          return `<div class="recent-trade-item">
+            <div class="rti-left">
+              <div class="rti-pair">${t.pair} <span style="font-size:10px;color:${t.direction==='BUY'?'var(--buy)':'var(--sell)'}">${t.direction}</span></div>
+              <div class="rti-meta">${t.date} · ${t.setup || '-'}</div>
+            </div>
+            <div class="rti-pnl" style="color:${pnlNum>=0?'var(--buy)':'var(--sell)'}">${pnlNum>=0?'+':''}${pnlNum.toFixed(2)} ${t.currency||'USD'}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>` : ''}
+  `;
+}
+
+// ============================================================
+// LOT SIZE MANAGEMENT
+// ============================================================
+function getLotSizeByPair(pair) {
+  return lotSizes.find(l => l.pair.toUpperCase() === pair.toUpperCase()) || null;
+}
+
+function renderLotSizeTab() {
+  const el = document.getElementById('lotsize-list');
+  if (!lotSizes.length) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">⚖️</div><p>Belum ada data Lot Size.<br>Klik tombol di atas untuk menambahkan pair.</p></div>`;
+    return;
+  }
+  el.innerHTML = lotSizes.map(ls => `
+    <div class="lot-size-card">
+      <div class="lot-size-card-header">
+        <div>
+          <div class="lot-pair-name">${ls.pair}</div>
+          <div class="lot-size-meta">Catatan: <span>${ls.notes || '—'}</span></div>
+        </div>
+        <span class="lot-badge">${ls.currency}</span>
+      </div>
+      <div class="lot-size-meta">Jarak Referensi: <span>${ls.priceDistance}</span> &nbsp;|&nbsp; Pip Size: <span>${ls.pipSize}</span></div>
+      <div class="lot-size-meta">Nominal / 1 Lot: <span>${Number(ls.nominal).toLocaleString('id-ID')} ${ls.currency}</span></div>
+      <div class="account-actions" style="margin-top:10px">
+        <button class="btn-sm" onclick="openEditLotModal('${ls.id}')">✏ Edit</button>
+        <button class="btn-sm danger" onclick="deleteLotSize('${ls.id}')">Hapus</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openAddLotModal() {
+  document.getElementById('lot-modal-title').textContent = '⚖️ Tambah Data Lot Size';
+  document.getElementById('edit-lot-id').value = '';
+  document.getElementById('lot-pair-search').value = '';
+  document.getElementById('lot-pair-value').value = '';
+  document.getElementById('lot-price-distance').value = '';
+  document.getElementById('lot-pip-size').value = '';
+  document.getElementById('lot-nominal').value = '';
+  document.getElementById('lot-currency').value = 'USD';
+  document.getElementById('lot-notes').value = '';
+  document.getElementById('lot-pip-preview').textContent = '';
+  buildLotPairDropdown('');
+  document.getElementById('add-lot-modal').classList.add('open');
+}
+
+function openEditLotModal(id) {
+  const ls = lotSizes.find(l => l.id === id);
+  if (!ls) return;
+  document.getElementById('lot-modal-title').textContent = '✏️ Edit Data Lot Size';
+  document.getElementById('edit-lot-id').value = id;
+  document.getElementById('lot-pair-search').value = ls.pair;
+  document.getElementById('lot-pair-value').value = ls.pair;
+  document.getElementById('lot-price-distance').value = ls.priceDistance;
+  document.getElementById('lot-pip-size').value = ls.pipSize;
+  document.getElementById('lot-nominal').value = ls.nominal;
+  document.getElementById('lot-currency').value = ls.currency;
+  document.getElementById('lot-notes').value = ls.notes || '';
+  calcLotPipSize();
+  document.getElementById('add-lot-modal').classList.add('open');
+}
+
+function closeAddLotModal() { document.getElementById('add-lot-modal').classList.remove('open'); }
+function closeAddLotModalOutside(e) { if (e.target.id === 'add-lot-modal') closeAddLotModal(); }
+
+function calcLotPipSize() {
+  const dist = parseFloat(document.getElementById('lot-price-distance').value);
+  const preview = document.getElementById('lot-pip-preview');
+  if (!dist || dist <= 0) { preview.textContent = ''; return; }
+  // Auto-suggest pip size: for most pairs 1 pip = 0.0001, for JPY = 0.01, metals vary
+  let suggested = dist;
+  const pair = document.getElementById('lot-pair-value').value.toUpperCase();
+  if (pair.includes('JPY')) suggested = 0.01;
+  else if (pair.includes('XAU') || pair.includes('GOLD')) suggested = 0.1;
+  else if (pair.includes('XAG')) suggested = 0.001;
+  else if (pair.includes('BTC')) suggested = 1;
+  else if (pair.includes('US30') || pair.includes('NAS') || pair.includes('GER')) suggested = 1;
+  else suggested = 0.0001;
+
+  document.getElementById('lot-pip-size').value = suggested;
+  const pips = (dist / suggested).toFixed(2);
+  preview.textContent = `📊 ${dist} harga = ${pips} pips (dengan pip size ${suggested})`;
+}
+
+function saveLotSize() {
+  const pair = document.getElementById('lot-pair-value').value.trim().toUpperCase();
+  const priceDistance = document.getElementById('lot-price-distance').value;
+  const pipSize = document.getElementById('lot-pip-size').value;
+  const nominal = document.getElementById('lot-nominal').value;
+  const currency = document.getElementById('lot-currency').value;
+  const notes = document.getElementById('lot-notes').value.trim();
+  const editId = document.getElementById('edit-lot-id').value;
+
+  if (!pair) { showToast('Pilih atau ketik nama pair!', 'error'); return; }
+  if (!pipSize || parseFloat(pipSize) <= 0) { showToast('Isi Pip Size!', 'error'); return; }
+  if (!nominal || parseFloat(nominal) <= 0) { showToast('Isi Nominal per 1 Lot!', 'error'); return; }
+
+  const lotData = {
+    id: editId || Date.now().toString(),
+    pair, priceDistance: priceDistance || pipSize,
+    pipSize, nominal, currency, notes,
+    updatedAt: new Date().toISOString()
+  };
+
+  if (editId) {
+    const idx = lotSizes.findIndex(l => l.id === editId);
+    if (idx !== -1) lotSizes[idx] = lotData;
+  } else {
+    // Check if pair already exists
+    const existing = lotSizes.findIndex(l => l.pair.toUpperCase() === pair);
+    if (existing !== -1) {
+      if (!confirm(`Data lot size untuk ${pair} sudah ada. Timpa?`)) return;
+      lotSizes[existing] = lotData;
+    } else {
+      lotSizes.push(lotData);
+    }
+  }
+
+  localStorage.setItem('tj_lot_sizes', JSON.stringify(lotSizes));
+  closeAddLotModal();
+  renderLotSizeTab();
+  showToast(`✅ Data Lot Size ${pair} tersimpan!`, 'success');
+
+  // Sync to Google Sheets
+  syncLotSizeToSheets(lotData);
+}
+
+function deleteLotSize(id) {
+  const ls = lotSizes.find(l => l.id === id);
+  if (!confirm(`Hapus data Lot Size ${ls?.pair}?`)) return;
+  lotSizes = lotSizes.filter(l => l.id !== id);
+  localStorage.setItem('tj_lot_sizes', JSON.stringify(lotSizes));
+  renderLotSizeTab();
+  showToast('Data Lot Size dihapus.', 'success');
+}
+
+async function syncLotSizeToSheets(lotData) {
+  if (!apiUrl) return;
+  try {
+    await fetch(apiUrl, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'save_lot_size', ...lotData }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+    document.getElementById('lotsize-sync-status').textContent = '✅ Synced to Sheets';
+    setTimeout(() => { document.getElementById('lotsize-sync-status').textContent = ''; }, 3000);
+  } catch(e) {
+    document.getElementById('lotsize-sync-status').textContent = '⚠ Lokal saja';
+  }
+}
+
+async function loadLotSizesFromSheets() {
+  if (!apiUrl) return;
+  try {
+    const r = await fetch(apiUrl + '?action=get_lot_sizes');
+    const j = await r.json();
+    if (j.status === 'ok' && j.lotSizes && j.lotSizes.length) {
+      // Merge: prefer sheets data for existing pairs
+      j.lotSizes.forEach(ls => {
+        const idx = lotSizes.findIndex(l => l.pair === ls['Pair']);
+        const mapped = {
+          id: ls['ID'] || Date.now().toString(),
+          pair: ls['Pair'], priceDistance: ls['Jarak Harga'],
+          pipSize: ls['Pip Size'], nominal: ls['Nominal per Lot'],
+          currency: ls['Currency'], notes: ls['Catatan'] || ''
+        };
+        if (idx !== -1) lotSizes[idx] = mapped;
+        else lotSizes.push(mapped);
+      });
+      localStorage.setItem('tj_lot_sizes', JSON.stringify(lotSizes));
+      renderLotSizeTab();
+    }
+  } catch(e) {}
+}
+
+// Lot pair search dropdown (reuse pair list)
+function buildLotPairDropdown(filter) {
+  const dd = document.getElementById('lot-pair-dropdown');
+  let html = '';
+  const f = filter.toLowerCase();
+  let hasResults = false;
+  for (const [group, pairs] of Object.entries(ALL_PAIRS)) {
+    const filtered = pairs.filter(p => !f || p.toLowerCase().includes(f));
+    if (filtered.length) {
+      hasResults = true;
+      html += `<div class="pair-group-label">${group}</div>`;
+      filtered.forEach(p => {
+        html += `<div class="pair-option" onmousedown="selectLotPair('${p}')">${p}</div>`;
+      });
+    }
+  }
+  if (!hasResults && filter) {
+    html += `<div class="pair-option" onmousedown="selectLotPair('${filter.toUpperCase()}')">${filter.toUpperCase()} (custom)</div>`;
+  }
+  dd.innerHTML = html;
+}
+
+function filterLotPairs(val) {
+  buildLotPairDropdown(val);
+  document.getElementById('lot-pair-value').value = val.toUpperCase();
+  openLotPairDropdown();
+  calcLotPipSize();
+}
+
+function openLotPairDropdown() {
+  buildLotPairDropdown(document.getElementById('lot-pair-search').value);
+  document.getElementById('lot-pair-dropdown').classList.add('open');
+}
+
+function delayCloseLotPairDropdown() {
+  setTimeout(() => document.getElementById('lot-pair-dropdown').classList.remove('open'), 200);
+}
+
+function selectLotPair(pair) {
+  document.getElementById('lot-pair-value').value = pair;
+  document.getElementById('lot-pair-search').value = pair;
+  document.getElementById('lot-pair-dropdown').classList.remove('open');
+  calcLotPipSize();
+}
+
+// ============================================================
+// SETUP / API MODAL
+// ============================================================
+function openSetupModal() {
+  document.getElementById('setup-modal').classList.add('open');
+  document.getElementById('api-url-input').value = apiUrl;
+}
+function closeSetupModal() { document.getElementById('setup-modal').classList.remove('open'); }
+function closeSetupModalOutside(e) { if (e.target.id === 'setup-modal') closeSetupModal(); }
+
+async function saveUrl() {
+  const url = document.getElementById('api-url-input').value.trim();
+  if (!url) { showToast('URL tidak boleh kosong!', 'error'); return; }
+  showToast('⏳ Mengetes koneksi...', '');
+  try {
+    const r = await fetch(url);
+    const j = await r.json();
+    if (j.status === 'ok') {
+      apiUrl = url;
+      localStorage.setItem('tj_api_url', url);
+      updateConnStatus(true);
+      showToast('✅ Berhasil terhubung ke Sheets!', 'success');
+      closeSetupModal();
+      // Load lot sizes from sheets
+      loadLotSizesFromSheets();
+    } else {
+      showToast('⚠ Respons tidak valid', 'error');
+    }
+  } catch(e) {
+    showToast('❌ Gagal terhubung. Cek URL.', 'error');
+  }
+}
+
+function updateConnStatus(connected) {
+  const el = document.getElementById('conn-status');
+  el.innerHTML = `<span class="status-dot ${connected?'connected':'disconnected'}"></span>${connected ? 'Terhubung ke Google Sheets' : 'Belum terhubung'}`;
+}
+
+// ============================================================
+// TOAST & MISC
+// ============================================================
+function showToast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type}`;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+function copyScript() {
+  const code = document.getElementById('apps-script-code').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    showToast('✅ Kode berhasil di-copy!', 'success');
+  });
+}
+</script>
+</body>
+</html>
