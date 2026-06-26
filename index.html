@@ -777,11 +777,24 @@ function doPost(e) {
 function doGet(e) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // Jika ada payload (write via GET untuk hindari CORS)
+    if (e.parameter.payload) {
+      const data = JSON.parse(e.parameter.payload);
+      const action = data.action || "";
+      if (action === "save_trade") return saveTrade(ss, data);
+      if (action === "save_account") return saveAccount(ss, data);
+      if (action === "update_account_balance") return updateAccountBalance(ss, data);
+      if (action === "update_trade") return updateTrade(ss, data);
+      if (action === "save_lot_size") return saveLotSize(ss, data);
+      return jsonResponse({status:"error", message:"Unknown action: " + action});
+    }
+
     const action = e.parameter.action || "ping";
     if (action === "get_trades") return getTrades(ss, e.parameter);
     if (action === "get_accounts") return getAccounts(ss);
     if (action === "get_lot_sizes") return getLotSizes(ss);
-    return jsonResponse({status:"ok", message:"Trading Journal API v2 aktif"});
+    return jsonResponse({status:"ok", message:"Trading Journal API v3 aktif"});
   } catch(err) {
     return jsonResponse({status:"error", message: err.toString()});
   }
@@ -1609,17 +1622,12 @@ function saveAccount() {
 
   if (apiUrl) {
     const acc = editId ? accounts.find(a => a.id === editId) : accounts[accounts.length-1];
-    fetch(apiUrl, {
-      method: 'POST',
-      body: JSON.stringify({action:'save_account', ...acc}),
-      headers: {'Content-Type':'application/json'}
-    })
-    .then(r => r.json())
+    postToSheets({action:'save_account', ...acc})
     .then(j => {
-      if (j.status === 'success') {
+      if (j && j.status === 'success') {
         showToast('☁️ Tersimpan ke Google Sheets!', 'success');
       } else {
-        showToast('⚠️ Gagal sync ke Sheets: ' + (j.message||''), 'error');
+        showToast('⚠️ Gagal sync ke Sheets: ' + (j&&j.message||''), 'error');
       }
     })
     .catch(e => {
@@ -1637,13 +1645,8 @@ async function pushAllAccountsToSheets() {
   let ok = 0, fail = 0;
   for (const acc of accounts) {
     try {
-      const r = await fetch(apiUrl, {
-        method: 'POST',
-        body: JSON.stringify({action:'save_account', ...acc}),
-        headers: {'Content-Type':'application/json'}
-      });
-      const j = await r.json();
-      if (j.status === 'success') ok++; else fail++;
+      const j = await postToSheets({action:'save_account', ...acc});
+      if (j && j.status === 'success') ok++; else fail++;
     } catch(e) { fail++; }
   }
   if (btn) { btn.textContent = '⬆️ Upload Akun ke Sheets'; btn.disabled = false; }
@@ -1715,7 +1718,7 @@ function applyPnlToBalance(pnl) {
   renderDashboard();
 
   if (apiUrl) {
-    fetch(apiUrl, { method:'POST', body: JSON.stringify({action:'update_account_balance', accountId: acc.id, newBalance: newBal}), headers: {'Content-Type':'application/json'} }).catch(()=>{});
+    postToSheets({action:'update_account_balance', accountId: acc.id, newBalance: newBal}).catch(()=>{});
   }
 }
 
@@ -1790,16 +1793,11 @@ async function submitTrade() {
 
   if (apiUrl) {
     try {
-      const res = await fetch(apiUrl, {
-        method: 'POST',
-        body: JSON.stringify({action:'save_trade', ...trade}),
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const json = await res.json();
-      if (json.status === 'success') {
+      const json = await postToSheets({action:'save_trade', ...trade});
+      if (json && json.status === 'success') {
         showToast('✅ Tersimpan ke Google Sheets!', 'success');
       } else {
-        showToast('⚠ Disimpan lokal. Error Sheets: ' + json.message, 'error');
+        showToast('⚠ Disimpan lokal. Error Sheets: ' + (json&&json.message||''), 'error');
       }
     } catch(err) {
       showToast('📱 Disimpan lokal (offline)', 'success');
@@ -1980,11 +1978,7 @@ function saveEditTrade() {
   localStorage.setItem('tj_trades', JSON.stringify(localTrades));
 
   if (apiUrl) {
-    fetch(apiUrl, {
-      method: 'POST',
-      body: JSON.stringify({action:'update_trade', ...localTrades[idx]}),
-      headers: {'Content-Type':'application/json'}
-    }).catch(()=>{});
+    postToSheets({action:'update_trade', ...localTrades[idx]}).catch(()=>{});
   }
 
   closeEditModal();
@@ -2234,11 +2228,7 @@ function deleteLotSize(id) {
 async function syncLotSizeToSheets(lotData) {
   if (!apiUrl) return;
   try {
-    await fetch(apiUrl, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'save_lot_size', ...lotData }),
-      headers: { 'Content-Type': 'application/json' }
-    });
+    await postToSheets({ action: 'save_lot_size', ...lotData });
     document.getElementById('lotsize-sync-status').textContent = '✅ Synced to Sheets';
     setTimeout(() => { document.getElementById('lotsize-sync-status').textContent = ''; }, 3000);
   } catch(e) {
@@ -2368,6 +2358,16 @@ function showToast(msg, type) {
   el.className = `toast ${type}`;
   el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ============================================================
+// HELPER: kirim data ke Sheets via GET (hindari CORS)
+// ============================================================
+async function postToSheets(data) {
+  if (!apiUrl) return null;
+  const params = new URLSearchParams({ payload: JSON.stringify(data) });
+  const r = await fetch(apiUrl + '?' + params.toString());
+  return r.json();
 }
 
 // ============================================================
