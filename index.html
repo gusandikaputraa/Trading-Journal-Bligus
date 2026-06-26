@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Trading Journal v2</title>
+<title>Trading Journal v3</title>
 <style>
   :root {
     --bg: #0d0f14;
@@ -481,7 +481,7 @@
     <div class="logo"><div class="logo-dot"></div>Trading Journal</div>
     <button class="setup-btn" onclick="openSetupModal()">⚙ Setup</button>
   </div>
-  <div class="header-sub" id="header-sub-text">v2.0 · Multi Account</div>
+  <div class="header-sub" id="header-sub-text">v3.0 · Multi Account · <span id="header-sync-indicator" style="color:var(--muted)">☁ Tidak Terhubung</span></div>
 </div>
 
 <div class="tabs">
@@ -715,6 +715,21 @@
 
 <!-- TAB: AKUN -->
 <div id="tab-accounts" class="content" style="display:none">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div style="font-size:13px;font-weight:700">👤 Akun Trading</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div id="accounts-sync-status" style="font-size:11px;color:var(--muted)"></div>
+      <button class="btn-sm primary" onclick="syncAllFromSheets()" id="sync-all-btn" style="font-size:11px;padding:5px 10px">🔄 Sync</button>
+    </div>
+  </div>
+  <div id="sync-banner" style="display:none;background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.3);border-radius:var(--radius);padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:12px">
+    ☁️ Koneksi Google Sheets aktif — data akan otomatis sync antar perangkat.
+    <br><span style="color:var(--muted);margin-top:3px;display:block">Terakhir sync: <span id="last-sync-time">—</span></span>
+  </div>
+  <div id="no-sync-banner" style="display:none;background:rgba(240,160,48,0.08);border:1px solid rgba(240,160,48,0.3);border-radius:var(--radius);padding:10px 14px;font-size:12px;color:#f0a030;margin-bottom:12px">
+    ⚠️ Belum terhubung ke Google Sheets. Data hanya tersimpan di perangkat ini.<br>
+    <span style="color:var(--muted)">Setup koneksi di tab <strong style="color:#f0a030">Setup</strong> agar data sync antar HP &amp; laptop.</span>
+  </div>
   <div id="accounts-list"></div>
   <button class="add-account-btn" onclick="openAddAccountModal()">+ Buat Akun Baru</button>
 </div>
@@ -1126,18 +1141,12 @@ const ALL_PAIRS = {
 // ============================================================
 // INIT
 // ============================================================
-window.onload = () => {
+window.onload = async () => {
   const now = new Date();
   document.getElementById('inp-date').value = now.toISOString().split('T')[0];
   const hh = String(now.getHours()).padStart(2,'0');
   const mm = String(now.getMinutes()).padStart(2,'0');
   document.getElementById('inp-time').value = `${hh}:${mm}`;
-
-  if (apiUrl) {
-    document.getElementById('api-url-input').value = apiUrl;
-    updateConnStatus(true);
-    loadLotSizesFromSheets();
-  }
 
   buildPairDropdown('');
   renderAccountSelector();
@@ -1146,6 +1155,14 @@ window.onload = () => {
   renderDashboard();
   updateHistoryAccountFilter();
   renderLotSizeTab();
+  updateSyncBanner();
+
+  if (apiUrl) {
+    document.getElementById('api-url-input').value = apiUrl;
+    updateConnStatus(true);
+    // Auto-sync semua data dari Sheets saat buka app
+    await syncAllFromSheets(true);
+  }
 };
 
 // ============================================================
@@ -1164,7 +1181,7 @@ function switchTab(name) {
   if (tabEl) tabEl.style.display = 'block';
   if (name === 'history') renderHistory();
   if (name === 'dashboard') renderDashboard();
-  if (name === 'accounts') renderAccountsTab();
+  if (name === 'accounts') { renderAccountsTab(); updateSyncBanner(); }
   if (name === 'lotsize') renderLotSizeTab();
 }
 
@@ -2262,8 +2279,9 @@ async function saveUrl() {
       updateConnStatus(true);
       showToast('✅ Berhasil terhubung ke Sheets!', 'success');
       closeSetupModal();
-      // Load lot sizes from sheets
-      loadLotSizesFromSheets();
+      // Sync semua data dari Sheets setelah koneksi berhasil
+      updateSyncBanner();
+      syncAllFromSheets(false);
     } else {
       showToast('⚠ Respons tidak valid', 'error');
     }
@@ -2275,6 +2293,11 @@ async function saveUrl() {
 function updateConnStatus(connected) {
   const el = document.getElementById('conn-status');
   el.innerHTML = `<span class="status-dot ${connected?'connected':'disconnected'}"></span>${connected ? 'Terhubung ke Google Sheets' : 'Belum terhubung'}`;
+  const ind = document.getElementById('header-sync-indicator');
+  if (ind) {
+    ind.textContent = connected ? '☁ Sync Aktif' : '☁ Tidak Terhubung';
+    ind.style.color = connected ? 'var(--accent)' : 'var(--muted)';
+  }
 }
 
 // ============================================================
@@ -2286,6 +2309,165 @@ function showToast(msg, type) {
   el.className = `toast ${type}`;
   el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ============================================================
+// SYNC BANNER
+// ============================================================
+function updateSyncBanner() {
+  const hasSyncBanner = document.getElementById('sync-banner');
+  const noSyncBanner = document.getElementById('no-sync-banner');
+  if (apiUrl) {
+    if (hasSyncBanner) hasSyncBanner.style.display = 'block';
+    if (noSyncBanner) noSyncBanner.style.display = 'none';
+    const lastSync = localStorage.getItem('tj_last_sync');
+    if (lastSync && document.getElementById('last-sync-time')) {
+      const d = new Date(lastSync);
+      document.getElementById('last-sync-time').textContent =
+        d.toLocaleString('id-ID', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    }
+  } else {
+    if (hasSyncBanner) hasSyncBanner.style.display = 'none';
+    if (noSyncBanner) noSyncBanner.style.display = 'block';
+  }
+}
+
+// ============================================================
+// SYNC ALL FROM SHEETS (master sync: accounts + trades + lot sizes)
+// ============================================================
+async function syncAllFromSheets(silent = false) {
+  if (!apiUrl) {
+    if (!silent) showToast('❌ Belum ada koneksi. Setup dulu!', 'error');
+    return;
+  }
+  const btn = document.getElementById('sync-all-btn');
+  const statusEl = document.getElementById('accounts-sync-status');
+  if (btn) { btn.textContent = '⏳ Sync...'; btn.disabled = true; }
+  if (statusEl) statusEl.textContent = '⏳ Mengambil data...';
+
+  let success = true;
+  try {
+    await Promise.all([
+      loadAccountsFromSheets(),
+      loadTradesFromSheets(),
+      loadLotSizesFromSheets()
+    ]);
+    const now = new Date().toISOString();
+    localStorage.setItem('tj_last_sync', now);
+    updateSyncBanner();
+    if (!silent) showToast('✅ Semua data berhasil di-sync!', 'success');
+    if (statusEl) statusEl.textContent = '✅ Synced';
+    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 3000);
+  } catch(e) {
+    success = false;
+    if (!silent) showToast('⚠️ Gagal sync. Cek koneksi.', 'error');
+    if (statusEl) statusEl.textContent = '⚠ Gagal';
+  }
+  if (btn) { btn.textContent = '🔄 Sync'; btn.disabled = false; }
+  return success;
+}
+
+// ============================================================
+// LOAD ACCOUNTS FROM SHEETS
+// ============================================================
+async function loadAccountsFromSheets() {
+  if (!apiUrl) return;
+  try {
+    const r = await fetch(apiUrl + '?action=get_accounts');
+    const j = await r.json();
+    if (j.status === 'ok' && j.accounts && j.accounts.length) {
+      j.accounts.forEach(acc => {
+        const mapped = {
+          id: (acc['ID'] || '').toString(),
+          name: acc['Nama Akun'] || '',
+          broker: acc['Broker'] || '',
+          accountId: acc['No ID Akun'] || '',
+          server: acc['Server'] || '',
+          currency: acc['Currency'] || 'USD',
+          initialBalance: parseFloat(acc['Saldo Awal']) || 0,
+          balance: parseFloat(acc['Saldo Sekarang']) || parseFloat(acc['Saldo Awal']) || 0
+        };
+        if (!mapped.id || !mapped.name) return;
+        const idx = accounts.findIndex(a => a.id === mapped.id);
+        if (idx !== -1) {
+          // Update dari Sheets (Sheets lebih up-to-date untuk saldo)
+          accounts[idx] = { ...accounts[idx], ...mapped };
+        } else {
+          accounts.push(mapped);
+        }
+      });
+      localStorage.setItem('tj_accounts', JSON.stringify(accounts));
+      // Pastikan activeAccountId valid
+      if (activeAccountId && !accounts.find(a => a.id === activeAccountId)) {
+        activeAccountId = accounts.length ? accounts[0].id : '';
+        localStorage.setItem('tj_active_account', activeAccountId);
+      } else if (!activeAccountId && accounts.length) {
+        activeAccountId = accounts[0].id;
+        localStorage.setItem('tj_active_account', activeAccountId);
+      }
+      renderAccountsTab();
+      renderAccountSelector();
+      renderDashboard();
+      updateHistoryAccountFilter();
+    }
+  } catch(e) {}
+}
+
+// ============================================================
+// LOAD TRADES FROM SHEETS
+// ============================================================
+async function loadTradesFromSheets() {
+  if (!apiUrl) return;
+  try {
+    const r = await fetch(apiUrl + '?action=get_trades');
+    const j = await r.json();
+    if (j.status === 'ok' && j.trades && j.trades.length) {
+      j.trades.forEach(t => {
+        const id = (t['ID'] || '').toString();
+        if (!id) return;
+        const mapped = {
+          id,
+          date: t['Tanggal'] || '',
+          time: t['Jam Entry'] || '',
+          pair: t['Pair'] || '',
+          direction: t['Arah'] || '',
+          entryPrice: t['Entry Price'] || '',
+          stopLoss: t['Stop Loss'] || '',
+          takeProfit: t['Take Profit'] || '',
+          lotSize: t['Lot Size'] || '',
+          riskPercent: t['Risk %'] || '',
+          tradingType: t['Jenis Trading'] || 'LIVE',
+          setup: t['Strategi'] || '',
+          setupOther: t['Ket.Strategi'] || '',
+          timeframe: t['Timeframe'] || '',
+          notes: t['Analisa'] || '',
+          isCompleted: t['Completed'] === 'YES',
+          result: t['Hasil'] || '',
+          closePrice: t['Close Price'] || '',
+          pnl: t['P&L'] !== undefined ? t['P&L'] : '',
+          currency: t['Currency'] || 'USD',
+          closeDate: t['Tgl Close'] || '',
+          closeTime: t['Jam Close'] || '',
+          duration: t['Durasi'] || '',
+          emotion: t['Emosi'] || '',
+          evaluation: t['Evaluasi'] || '',
+          accountId: (t['Akun ID'] || '').toString(),
+          accountName: t['Nama Akun'] || '',
+          broker: t['Broker'] || '',
+          balanceAfter: t['Saldo Setelah'] || ''
+        };
+        const idx = localTrades.findIndex(x => x.id === id);
+        if (idx !== -1) {
+          localTrades[idx] = { ...localTrades[idx], ...mapped };
+        } else {
+          localTrades.push(mapped);
+        }
+      });
+      localStorage.setItem('tj_trades', JSON.stringify(localTrades));
+      renderHistory();
+      renderDashboard();
+    }
+  } catch(e) {}
 }
 
 function copyScript() {
