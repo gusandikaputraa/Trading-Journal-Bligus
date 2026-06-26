@@ -731,7 +731,10 @@
     <span style="color:var(--muted)">Setup koneksi di tab <strong style="color:#f0a030">Setup</strong> agar data sync antar HP &amp; laptop.</span>
   </div>
   <div id="accounts-list"></div>
-  <button class="add-account-btn" onclick="openAddAccountModal()">+ Buat Akun Baru</button>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+    <button class="add-account-btn" onclick="openAddAccountModal()">+ Buat Akun Baru</button>
+    <button id="push-accounts-btn" class="add-account-btn" onclick="pushAllAccountsToSheets()" style="background:var(--surface2);border:1px solid var(--accent);color:var(--accent)">⬆️ Upload Akun ke Sheets</button>
+  </div>
 </div>
 
 <!-- TAB: SETUP / PANDUAN -->
@@ -906,10 +909,22 @@ function saveAccount(ss, data) {
       .setBackground("#1a1a2e").setFontColor("#00d4aa").setFontWeight("bold");
     sheet.setFrozenRows(1);
   }
-  const id = data.id || Date.now().toString();
+  const id = (data.id || Date.now()).toString();
+  // Cek apakah akun sudah ada (update, bukan duplikat)
+  const rows = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0].toString() === id) {
+      sheet.getRange(i+1, 1, 1, 9).setValues([[
+        id, data.name, data.broker, data.accountId, data.server,
+        data.currency, data.initialBalance, data.balance, rows[i][8]
+      ]]);
+      return jsonResponse({status:"success", id, updated: true});
+    }
+  }
+  // Akun baru
   sheet.appendRow([id, data.name, data.broker, data.accountId, data.server,
     data.currency, data.initialBalance, data.balance, new Date().toLocaleString("id-ID")]);
-  return jsonResponse({status:"success", id});
+  return jsonResponse({status:"success", id, updated: false});
 }
 
 function updateAccountBalance(ss, data) {
@@ -1594,7 +1609,51 @@ function saveAccount() {
 
   if (apiUrl) {
     const acc = editId ? accounts.find(a => a.id === editId) : accounts[accounts.length-1];
-    fetch(apiUrl, { method:'POST', body: JSON.stringify({action:'save_account', ...acc}), headers: {'Content-Type':'application/json'} }).catch(()=>{});
+    fetch(apiUrl, {
+      method: 'POST',
+      body: JSON.stringify({action:'save_account', ...acc}),
+      headers: {'Content-Type':'application/json'}
+    })
+    .then(r => r.json())
+    .then(j => {
+      if (j.status === 'success') {
+        showToast('☁️ Tersimpan ke Google Sheets!', 'success');
+      } else {
+        showToast('⚠️ Gagal sync ke Sheets: ' + (j.message||''), 'error');
+      }
+    })
+    .catch(e => {
+      showToast('⚠️ Tidak bisa kirim ke Sheets. Cek koneksi.', 'error');
+      console.error('saveAccount to Sheets error:', e);
+    });
+  }
+}
+
+async function pushAllAccountsToSheets() {
+  if (!apiUrl) { showToast('Belum ada koneksi Sheets!', 'error'); return; }
+  if (!accounts.length) { showToast('Tidak ada akun untuk di-push.', 'error'); return; }
+  const btn = document.getElementById('push-accounts-btn');
+  if (btn) { btn.textContent = '⏳ Uploading...'; btn.disabled = true; }
+  let ok = 0, fail = 0;
+  for (const acc of accounts) {
+    try {
+      const r = await fetch(apiUrl, {
+        method: 'POST',
+        body: JSON.stringify({action:'save_account', ...acc}),
+        headers: {'Content-Type':'application/json'}
+      });
+      const j = await r.json();
+      if (j.status === 'success') ok++; else fail++;
+    } catch(e) { fail++; }
+  }
+  if (btn) { btn.textContent = '⬆️ Upload Akun ke Sheets'; btn.disabled = false; }
+  if (fail === 0) {
+    showToast(`✅ ${ok} akun berhasil di-upload ke Sheets!`, 'success');
+    const now = new Date().toISOString();
+    localStorage.setItem('tj_last_sync', now);
+    updateSyncBanner();
+  } else {
+    showToast(`⚠️ ${ok} berhasil, ${fail} gagal.`, 'error');
   }
 }
 
